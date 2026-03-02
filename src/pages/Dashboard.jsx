@@ -231,9 +231,9 @@ function Dashboard() {
 
     const toggleEventRegistration = async (eventId) => {
         try {
-            const { error } = await supabase.rpc('toggle_event_registration', { 
-                p_event_id: eventId, 
-                p_user_id: user.id 
+            const { error } = await supabase.rpc('toggle_event_registration', {
+                p_event_id: eventId,
+                p_user_id: user.id
             });
             if (error) throw error;
             fetchEvents(); // Refresh upcoming list
@@ -365,16 +365,24 @@ function Dashboard() {
                                             👥 {ev.participant_count} participants
                                         </div>
                                         <div className="event-actions">
-                                            <button 
+                                            <button
                                                 className={`action-btn ${ev.is_participating ? 'danger' : ''}`}
-                                                onClick={(e) => { 
+                                                onClick={(e) => {
                                                     e.stopPropagation(); // Prevent opening modal when clicking join/leave
+                                                    if (ev.user_status === 'ATTENDED' || ev.user_status === 'ABSENT') {
+                                                        alert("No puedes abandonar este evento porque ya se ha pasado lista.");
+                                                        return;
+                                                    }
                                                     toggleEventRegistration(ev.id);
                                                 }}
+                                                disabled={ev.user_status === 'ATTENDED' || ev.user_status === 'ABSENT'}
+                                                style={{ opacity: (ev.user_status === 'ATTENDED' || ev.user_status === 'ABSENT') ? 0.5 : 1 }}
                                             >
-                                                {ev.is_participating ? 'Leave Event' : 'Join Event'}
+                                                {ev.user_status === 'ATTENDED' ? 'Asistió' :
+                                                    ev.user_status === 'ABSENT' ? 'Ausente' :
+                                                        ev.is_participating ? 'Abandonar' : 'Unirse al Evento'}
                                             </button>
-             
+
                                             {canDeleteEvent && (
                                                 <button onClick={(e) => {
                                                     e.stopPropagation(); // Prevent opening modal when deleting
@@ -501,7 +509,7 @@ function Dashboard() {
                             <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>Calendar Explorer</h3>
                             <button className="icon-btn delete" onClick={handleCloseCalendar} style={{ fontSize: '1.2rem' }}>✖</button>
                         </div>
-                        
+
                         <div className="calendar-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <button className="action-btn" style={{ width: 'auto' }} onClick={prevMonth}>◀ Prev</button>
                             <h4 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--accent-gold)' }}>
@@ -514,30 +522,30 @@ function Dashboard() {
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                                 <div key={day} className="calendar-day-header">{day}</div>
                             ))}
-                            
+
                             {/* Generation of days */}
                             {(() => {
                                 const year = currentMonth.getFullYear();
                                 const month = currentMonth.getMonth();
-                                
+
                                 // Get first day of month (0 = Sunday, 1 = Monday ...)
                                 let firstDay = new Date(year, month, 1).getDay();
-                                
+
                                 // Convert to European formatting (0 = Monday, ..., 6 = Sunday)
                                 firstDay = firstDay === 0 ? 6 : firstDay - 1;
-                                
+
                                 const daysInMonth = new Date(year, month + 1, 0).getDate();
-                                
+
                                 const days = [];
                                 // Empty slots before the first day
                                 for (let i = 0; i < firstDay; i++) {
                                     days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
                                 }
-                                
+
                                 // Actual days
                                 for (let i = 1; i <= daysInMonth; i++) {
                                     const currentDate = new Date(year, month, i);
-                                    
+
                                     // Filter events for this day
                                     const dayEvents = allEvents.filter(ev => {
                                         const evDate = new Date(ev.event_date);
@@ -579,7 +587,7 @@ function Dashboard() {
                             </div>
                             <button className="icon-btn delete" onClick={() => setSelectedEvent(null)} style={{ fontSize: '1.2rem' }}>✖</button>
                         </div>
-                        
+
                         <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
                             <h4 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Description</h4>
                             <p style={{ color: 'var(--text-primary)', lineHeight: '1.6', background: 'rgba(0, 0, 0, 0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
@@ -606,8 +614,17 @@ function Dashboard() {
 
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Participation Status</div>
-                                <div style={{ fontWeight: '600', color: selectedEvent.is_participating ? '#10b981' : 'var(--text-secondary)' }}>
-                                    {selectedEvent.is_participating ? '✓ You are attending' : 'Not attending'}
+                                <div style={{
+                                    fontWeight: '600',
+                                    color: selectedEvent.user_status === 'ATTENDED' ? '#10b981' :
+                                        selectedEvent.user_status === 'ABSENT' ? '#ef4444' :
+                                            selectedEvent.user_status === 'REGISTERED' ? 'var(--accent-gold)' :
+                                                selectedEvent.is_participating ? '#10b981' : 'var(--text-secondary)'
+                                }}>
+                                    {selectedEvent.user_status === 'ATTENDED' ? '✓ Asistió' :
+                                        selectedEvent.user_status === 'ABSENT' ? '❌ Ausente' :
+                                            selectedEvent.user_status === 'REGISTERED' ? '⏳ Pendiente (Inscrito)' :
+                                                selectedEvent.is_participating ? '✓ Inscrito' : 'No inscrito'}
                                 </div>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', marginTop: '0.25rem' }}>
                                     👥 {selectedEvent.participant_count} Total Participants
@@ -616,20 +633,34 @@ function Dashboard() {
                         </div>
 
                         <div className="cropper-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
-                            <button 
+                            <button
                                 className={`login-button ${selectedEvent.is_participating ? 'btn-secondary' : ''}`}
-                                style={{ width: '100%', borderColor: selectedEvent.is_participating ? '#ef4444' : 'var(--accent-gold)', color: selectedEvent.is_participating ? '#ef4444' : 'var(--accent-gold)' }}
+                                style={{
+                                    width: '100%',
+                                    borderColor: selectedEvent.is_participating ? '#ef4444' : 'var(--accent-gold)',
+                                    color: selectedEvent.is_participating ? '#ef4444' : 'var(--accent-gold)',
+                                    opacity: (selectedEvent.user_status === 'ATTENDED' || selectedEvent.user_status === 'ABSENT') ? 0.5 : 1
+                                }}
+                                disabled={selectedEvent.user_status === 'ATTENDED' || selectedEvent.user_status === 'ABSENT'}
                                 onClick={async () => {
+                                    if (selectedEvent.user_status === 'ATTENDED' || selectedEvent.user_status === 'ABSENT') {
+                                        return;
+                                    }
+
                                     await toggleEventRegistration(selectedEvent.id);
                                     // Update visual representation immediately
+                                    const newStatus = selectedEvent.is_participating ? null : (selectedEvent.dtp_event ? 'REGISTERED' : null);
                                     setSelectedEvent({
-                                        ...selectedEvent, 
+                                        ...selectedEvent,
                                         is_participating: !selectedEvent.is_participating,
+                                        user_status: newStatus,
                                         participant_count: selectedEvent.is_participating ? parseInt(selectedEvent.participant_count) - 1 : parseInt(selectedEvent.participant_count) + 1
                                     });
                                 }}
                             >
-                                {selectedEvent.is_participating ? 'LEAVE EVENT' : 'JOIN THIS EVENT'}
+                                {selectedEvent.user_status === 'ATTENDED' ? 'ASISTIÓ' :
+                                    selectedEvent.user_status === 'ABSENT' ? 'AUSENTE' :
+                                        selectedEvent.is_participating ? 'ABANDONAR EVENTO' : 'UNIRSE A ESTE EVENTO'}
                             </button>
                         </div>
                     </div>
