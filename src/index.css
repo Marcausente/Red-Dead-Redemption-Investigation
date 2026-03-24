@@ -1,15 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cinzel:wght@500;700&display=swap');
+
 :root {
-  --primary-bg: #0b1120;
-  /* Deep Navy Blue */
-  --secondary-bg: #1e293b;
-  /* Adjustable secondary */
-  --accent-gold: #cfb53b;
-  /* Police Badge Gold */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --glass-bg: rgba(15, 23, 42, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --font-family: "Inter", system-ui, -apple-system, sans-serif;
+  --primary-bg: #150f0a; /* Deep muddy brown */
+  --secondary-bg: #231812; /* Darker brown for cards/sidebar */
+  --accent-gold: #d4af37; /* Bronze/Gold */
+  --text-primary: #e5d8c5; /* Aged paper text */
+  --text-secondary: #c0a080; /* Dimmed gold/brown text */
+  --glass-bg: rgba(20, 12, 8, 0.85); /* Dark wood glass */
+  --glass-border: rgba(212, 175, 55, 0.15); /* Subtly gold line */
+  --font-family: "Playfair Display", serif;
 }
 
 * {
@@ -251,9 +250,10 @@ body {
 
 .sidebar-title {
   font-weight: 700;
-  color: var(--text-primary);
-  font-size: 1rem;
-  letter-spacing: 1px;
+  color: var(--accent-gold);
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  font-family: 'Cinzel', serif;
 }
 
 .sidebar-nav {
@@ -386,24 +386,27 @@ body {
   flex-direction: column;
   overflow-y: auto;
   background-image:
-    linear-gradient(rgba(11, 17, 32, 0.95), rgba(11, 17, 32, 0.95)),
-    url("/indeximage.png");
-  /* Subtle texture if needed */
+    linear-gradient(rgba(20, 12, 8, 0.90), rgba(15, 8, 4, 0.95)),
+    url("/rdr2_login_bg.png");
+  /* Premium Dark Wood / Western Backdrop */
   background-size: cover;
+  background-attachment: fixed;
 }
 
 .content-header {
   padding: 1.5rem 3rem;
-  background-color: rgba(11, 17, 32, 0.5);
-  backdrop-filter: blur(5px);
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--glass-border);
 }
 
 .page-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: 1px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: 'Cinzel', serif;
+  color: var(--accent-gold);
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .content-body {
