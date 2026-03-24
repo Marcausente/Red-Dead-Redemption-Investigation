@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import '../index.css';
+import BOILogo from '../assets/logoboi.png';
 
 function MainLayout() {
     const [profile, setProfile] = useState(null);
@@ -31,7 +32,6 @@ function MainLayout() {
             }
         };
 
-        // Check initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {
                 navigate('/');
@@ -40,7 +40,6 @@ function MainLayout() {
             }
         });
 
-        // Listen for changes
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_OUT' || !session) {
                 navigate('/');
@@ -53,53 +52,30 @@ function MainLayout() {
             mounted = false;
             authListener.subscription.unsubscribe();
         };
-    }, []); // Empty dependency to run once
+    }, [navigate]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/');
     };
 
-    const allNavItems = [
-        { name: 'Dashboard', path: '/dashboard', divisions: ['Detective Bureau'] },
-        { name: 'Documentation', path: '/documentation', divisions: ['Detective Bureau'] },
-        { name: 'Criminal Cases', path: '/cases', divisions: ['Detective Bureau'] },
-        { name: 'Gangs', path: '/gangs', divisions: ['Detective Bureau'] },
-        { name: 'Incidents', path: '/incidents', divisions: ['Detective Bureau'] },
-        { name: 'Crime Map', path: '/crimemap', divisions: ['Detective Bureau'] },
-        { name: 'Judicial Orders', path: '/warrants', divisions: ['Detective Bureau'] },
-        { name: 'Interrogations', path: '/interrogations', divisions: ['Detective Bureau'] },
-        { name: 'Detective Training Program', path: '/training', divisions: ['Detective Bureau'], roles: ['detective', 'coordinador'] },
-        { name: 'Personnel', path: '/personnel', divisions: ['Detective Bureau', 'Internal Affairs', 'DOJ'] },
-        { name: 'Internal Affairs', path: '/internal-affairs', divisions: ['Internal Affairs'] },
-        { name: 'Department of Justice', path: '/doj', divisions: ['DOJ'] },
+    const navItems = [
+        { name: 'Tablón de anuncios', path: '/dashboard' },
+        { name: 'Documentación', path: '/documentation' },
+        { name: 'Casos', path: '/cases' },
+        { name: 'Grupos Criminales', path: '/gangs' },
+        { name: 'Incidentes', path: '/incidents' },
+        { name: 'Mapa del Estado', path: '/crimemap' },
+        { name: 'Personal', path: '/personnel' }
     ];
-
-    const navItems = allNavItems.filter(item => {
-        if (!profile) return false;
-        // Administrator Bypass
-        if (profile.rol === 'Administrador' || profile.rol === 'superadmin') return true;
-
-        if (!profile.divisions) return false;
-        
-        // Filter by role if the item specifies exact roles
-        if (item.roles) {
-            const userRole = profile.rol ? profile.rol.toLowerCase() : '';
-            const hasRole = item.roles.some(r => r.toLowerCase() === userRole);
-            if (!hasRole) return false;
-        }
-
-        // Check if user has AT LEAST ONE of the required divisions for this item
-        return item.divisions.some(div => profile.divisions.includes(div));
-    });
 
     return (
         <div className="layout-container">
             {/* Sidebar */}
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <img src="/LOGO_SAPD.png" alt="SAPD" className="sidebar-logo" />
-                    <div className="sidebar-title">DETECTIVE BUREAU</div>
+                    <img src={BOILogo} alt="BOI" className="sidebar-logo" />
+                    <div className="sidebar-title">BUREAU OF INVESTIGATION</div>
                 </div>
 
                 <nav className="sidebar-nav">
@@ -121,12 +97,14 @@ function MainLayout() {
                                 {profile.profile_image ? (
                                     <img src={profile.profile_image} alt="Profile" />
                                 ) : (
-                                    <img src="/anon.png" alt="Profile" />
+                                    <div className="user-avatar-initial" style={{width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#3b2b1d', color: '#d4af37', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1.2rem', fontFamily: 'Cinzel, serif'}}>
+                                        {profile.nombre ? profile.nombre[0].toUpperCase() : 'U'}
+                                    </div>
                                 )}
                             </div>
                             <div className="user-info">
                                 <div className="user-name">{profile.rango} {profile.nombre} {profile.apellido}</div>
-                                <div className="user-badge">Badge #{profile.no_placa}</div>
+                                <div className="user-badge">{profile.rol}</div>
                             </div>
                         </div>
                     )}
@@ -140,8 +118,7 @@ function MainLayout() {
             {/* Main Content Area */}
             <main className="layout-content">
                 <header className="content-header">
-                    {/* Breadcrumbs or Page Title could go here */}
-                    <h2 className="page-title">{navItems.find(i => i.path === location.pathname)?.name || 'Detective Bureau'}</h2>
+                    <h2 className="page-title">{navItems.find(i => i.path === location.pathname)?.name || 'Bureau of Investigation'}</h2>
                 </header>
                 <div className="content-body">
                     <Outlet />
