@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import '../index.css';
+import './LoginRDR.css';
+import USSLogo from '../assets/USS logo.png';
+import BOILogo from '../assets/logoboi.png';
 
 function Login() {
     const [email, setEmail] = useState('');
@@ -12,7 +15,7 @@ function Login() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setLoading(true); //test
+        setLoading(true);
         setError(null);
 
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -30,48 +33,46 @@ function Login() {
     };
 
     return (
-        <div className="app-container">
-            {/* Background */}
-            <div className="background-container">
-                <img src="/indeximage.png" alt="Background" className="background-image" />
-            </div>
+        <div className="rdr-login-container">
+            {/* Background Texture Overlay */}
+            <div className="rdr-background-overlay"></div>
 
             {/* Header */}
-            <header className="header">
-                <img src="/LOGO_SAPD.png" alt="SAPD Logo" className="header-logo" />
-                <div className="header-title-container">
-                    <h1 className="header-title">Los Santos Police Department</h1>
-                    <div className="header-subtitle">Detective Bureau</div>
+            <header className="rdr-header">
+                <img src={USSLogo} alt="USS Logo" className="rdr-header-logo" />
+                <div className="rdr-header-title-container">
+                    <h1 className="rdr-header-title">United States Sheriff</h1>
+                    <div className="rdr-header-subtitle">Bureau of Investigation</div>
                 </div>
-                <img src="/dblogo.png" alt="Detective Bureau Logo" className="header-logo" />
+                <img src={BOILogo} alt="BOI Logo" className="rdr-header-logo" />
             </header>
 
             {/* Main Content */}
-            <main className="main-content">
-                <div className="login-card">
-                    <div className="login-header">
+            <main className="rdr-main-content">
+                <div className="rdr-login-card">
+                    <div className="rdr-login-header">
                         <h2>Authorized Access</h2>
-                        <p>Please identify yourself, Detective.</p>
+                        <p>Identify yourself, Deputy.</p>
                     </div>
 
                     <form onSubmit={handleLogin}>
-                        <div className="form-group">
-                            <label className="form-label">Email:</label>
+                        <div className="rdr-form-group">
+                            <label className="rdr-form-label">Email:</label>
                             <input
                                 type="email"
-                                className="form-input"
+                                className="rdr-form-input"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Ex: mrosenberg@lspd.com"
+                                placeholder="Ex: amorgan@uss.gov"
                                 required
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Password</label>
+                        <div className="rdr-form-group">
+                            <label className="rdr-form-label">Password</label>
                             <input
                                 type="password"
-                                className="form-input"
+                                className="rdr-form-input"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
@@ -79,9 +80,9 @@ function Login() {
                             />
                         </div>
 
-                        {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+                        {error && <div style={{ color: '#8b0000', marginBottom: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
 
-                        <button type="submit" className="login-button" disabled={loading}>
+                        <button type="submit" className="rdr-login-button" disabled={loading}>
                             {loading ? 'Authenticating...' : 'Access System'}
                         </button>
                     </form>

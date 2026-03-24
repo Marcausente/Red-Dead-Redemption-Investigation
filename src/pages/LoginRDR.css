@@ -1,0 +1,207 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cinzel:wght@500;700&display=swap');
+
+.rdr-login-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-image: url('/rdr2_login_bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-family: 'Playfair Display', serif;
+    position: relative;
+    color: #e5d8c5;
+}
+
+/* Elegant dark overlay over the background image to ensure readability */
+.rdr-background-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(15, 10, 5, 0.85) 0%, rgba(25, 15, 10, 0.6) 100%);
+    z-index: 1;
+}
+
+/* Rest of layers */
+.rdr-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    gap: 3rem;
+    z-index: 2;
+    background: linear-gradient(to bottom, rgba(10, 5, 0, 0.9), transparent);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15); /* Subtly gold line */
+}
+
+.rdr-header-logo {
+    width: 140px;
+    height: 140px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));
+    transition: transform 0.3s ease;
+}
+
+.rdr-header-logo:hover {
+    transform: scale(1.05);
+}
+
+.rdr-header-title-container {
+    text-align: center;
+}
+
+.rdr-header-title {
+    font-family: 'Cinzel', serif; /* Very premium, cinematic font */
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: #d4af37; /* Gold */
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.rdr-header-subtitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: #c0a080;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+}
+
+.rdr-main-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    padding: 2rem;
+}
+
+.rdr-login-card {
+    background: rgba(20, 12, 8, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 3.5rem 4rem;
+    border-radius: 8px;
+    box-shadow: 
+        0 25px 50px rgba(0,0,0,0.8),
+        inset 0 0 0 1px rgba(212, 175, 55, 0.2);
+    border: 1px solid rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle inner glow */
+.rdr-login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
+}
+
+.rdr-login-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.rdr-login-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+    color: #d4af37;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rdr-login-header p {
+    font-size: 1.1rem;
+    color: #9a8a78;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.rdr-form-group {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.rdr-form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #c0a080;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rdr-form-input {
+    width: 100%;
+    padding: 0.8rem 0;
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+    color: #f5eedc;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.rdr-form-input:focus {
+    outline: none;
+    border-bottom: 1px solid #d4af37;
+    box-shadow: 0 1px 0 0 rgba(212, 175, 55, 0.5);
+}
+
+.rdr-form-input::placeholder {
+    color: rgba(192, 160, 128, 0.4);
+}
+
+/* Auto-fill styling fix for dark backgrounds */
+.rdr-form-input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px rgba(20, 12, 8, 0.9) inset !important;
+    -webkit-text-fill-color: #f5eedc !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.rdr-login-button {
+    width: 100%;
+    padding: 1.2rem;
+    background: linear-gradient(180deg, #3a2518 0%, #1a0f0a 100%);
+    color: #d4af37;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 4px;
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.rdr-login-button:hover:not(:disabled) {
+    background: linear-gradient(180deg, #4a3020 0%, #2a1810 100%);
+    border-color: #d4af37;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.15);
+}
+
+.rdr-login-button:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.rdr-login-button:disabled {
+    background: #1a1a1a;
+    border-color: #333;
+    cursor: not-allowed;
+    color: #555;
+    box-shadow: none;
+}
