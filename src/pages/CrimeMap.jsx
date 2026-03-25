@@ -206,15 +206,15 @@ export default function CrimeMap() {
 
             if (mode === 'draw' && drawingPoints.length > 0) {
                 drawingPoints.forEach(pt => {
-                    L.circleMarker(pt, { color: '#8b5a2b', radius: 5, fillOpacity: 1 }).addTo(drawingLayerRef.current);
+                    L.circleMarker(pt, { color: '#3b2b1d', radius: 5, fillOpacity: 1 }).addTo(drawingLayerRef.current);
                 });
 
                 if (drawingPoints.length > 1) {
-                    L.polyline(drawingPoints, { color: '#8b5a2b', dashArray: '5, 10', weight: 3 }).addTo(drawingLayerRef.current);
+                    L.polyline(drawingPoints, { color: '#3b2b1d', dashArray: '5, 10', weight: 3 }).addTo(drawingLayerRef.current);
                 }
 
                 if (drawingPoints.length > 2) {
-                    L.polyline([drawingPoints[drawingPoints.length - 1], drawingPoints[0]], { color: '#8b5a2b', dashArray: '5, 10', opacity: 0.5, weight: 3 }).addTo(drawingLayerRef.current);
+                    L.polyline([drawingPoints[drawingPoints.length - 1], drawingPoints[0]], { color: '#3b2b1d', dashArray: '5, 10', opacity: 0.5, weight: 3 }).addTo(drawingLayerRef.current);
                 }
             }
         }
@@ -232,7 +232,7 @@ export default function CrimeMap() {
         setTempZoneData({
             name: zone.name,
             description: zone.description || '',
-            color: zone.color || '#8b5a2b'
+            color: '#3b2b1d' // Forzar siempre tinta carbón oscura estilo mapa
         });
         setEditingZoneId(zone.id);
         setShowModal(true);
@@ -241,7 +241,7 @@ export default function CrimeMap() {
     const handleFinishDraw = () => {
         if (drawingPoints.length < 3) return alert("Debes marcar al menos 3 puntos en el compás cartográfico.");
         setEditingZoneId(null); 
-        setTempZoneData({ name: '', description: '', color: '#8b0000' });
+        setTempZoneData({ name: '', description: '', color: '#3b2b1d' });
         setShowModal(true);
     };
 
@@ -275,7 +275,7 @@ export default function CrimeMap() {
             setDrawingPoints([]);
             setShowModal(false);
             setEditingZoneId(null);
-            setTempZoneData({ name: '', description: '', color: '#8b0000' });
+            setTempZoneData({ name: '', description: '', color: '#3b2b1d' });
         }
     };
 
@@ -357,16 +357,7 @@ export default function CrimeMap() {
                                 />
                             </div>
 
-                            <div>
-                                <label style={{color: '#c0a080', fontSize: '0.9rem', marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase'}}>Tinta (Color)</label>
-                                <input
-                                    type="color"
-                                    className="rdr-input"
-                                    style={{ height: '50px', padding: '5px', cursor: 'pointer' }}
-                                    value={tempZoneData.color}
-                                    onChange={e => setTempZoneData({ ...tempZoneData, color: e.target.value })}
-                                />
-                            </div>
+
 
                             <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
                                 <button
