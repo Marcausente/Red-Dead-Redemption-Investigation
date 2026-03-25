@@ -167,7 +167,7 @@ function Incidents() {
 
     const IncidentCard = ({ i }) => (
         <div className="rdr-trello-card" style={{ borderLeftColor: i.group_color || '#c0a080' }}>
-            <div style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem', display: 'flex', gap: '5px' }}>
+            <div style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem', display: 'flex', gap: '5px' }} onMouseDown={e => e.stopPropagation()}>
                 <span onClick={() => handleEditItem(i, 'inc')}>✏️</span>
                 <span onClick={() => handleDeleteIncident(i.id, 'inc')}>🗑️</span>
             </div>
@@ -182,7 +182,7 @@ function Incidents() {
             </div>
 
             {i.description && (
-                <div onClick={() => toggleExpand(i.id)} style={{ cursor: 'pointer', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.1)', borderLeft: '2px solid #8b5a2b', color: '#1a0f0a', whiteSpace: 'pre-wrap', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: expandedCards[i.id] ? 'none' : '4', WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title="Clic para expandir/contraer">
+                <div onClick={() => toggleExpand(i.id)} onMouseDown={e => e.stopPropagation()} style={{ cursor: 'pointer', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.1)', borderLeft: '2px solid #8b5a2b', color: '#1a0f0a', whiteSpace: 'pre-wrap', fontSize: '0.9rem', display: expandedCards[i.id] ? 'block' : '-webkit-box', WebkitLineClamp: expandedCards[i.id] ? 'unset' : 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title="Clic para expandir/contraer">
                     <strong>Descripción: </strong> {i.description}
                 </div>
             )}
@@ -199,7 +199,7 @@ function Incidents() {
 
     const FieldOpCard = ({ o }) => (
         <div className="rdr-trello-card" style={{ borderLeftColor: o.group_color || '#2e4a2e' }}>
-            <div style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem', display: 'flex', gap: '5px' }}>
+            <div style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem', display: 'flex', gap: '5px' }} onMouseDown={e => e.stopPropagation()}>
                 <span onClick={() => handleEditItem(o, 'op')}>✏️</span>
                 <span onClick={() => handleDeleteIncident(o.id, 'op')}>🗑️</span>
             </div>
@@ -219,7 +219,7 @@ function Incidents() {
             )}
             
             {o.info && (
-                <div onClick={() => toggleExpand(o.id)} style={{ cursor: 'pointer', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.1)', borderLeft: '2px solid #556b2f', color: '#1a0f0a', whiteSpace: 'pre-wrap', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: expandedCards[o.id] ? 'none' : '4', WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title="Clic para expandir/contraer">
+                <div onClick={() => toggleExpand(o.id)} onMouseDown={e => e.stopPropagation()} style={{ cursor: 'pointer', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.1)', borderLeft: '2px solid #556b2f', color: '#1a0f0a', whiteSpace: 'pre-wrap', fontSize: '0.9rem', display: expandedCards[o.id] ? 'block' : '-webkit-box', WebkitLineClamp: expandedCards[o.id] ? 'unset' : 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title="Clic para expandir/contraer">
                     <strong>Resolución/Info: </strong> {o.info}
                 </div>
             )}
