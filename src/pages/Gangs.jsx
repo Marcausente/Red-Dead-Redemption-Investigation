@@ -6,26 +6,27 @@ function Gangs() {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
+    const [viewMode, setViewMode] = useState('active'); // 'active' | 'archived'
 
     // Modal states
     const [activeModal, setActiveModal] = useState(null);
     const [activeGroupId, setActiveGroupId] = useState(null);
+    const [editingItemId, setEditingItemId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [expandedImage, setExpandedImage] = useState(null);
 
     // Form fields
-    // Group
     const [groupName, setGroupName] = useState('');
     const [groupColor, setGroupColor] = useState('#8b0000');
     const [groupImage, setGroupImage] = useState(null);
-    // Char
+    
     const [charContent, setCharContent] = useState('');
-    // Camp
+    
     const [campMapPhoto, setCampMapPhoto] = useState(null);
     const [campPhoto, setCampPhoto] = useState(null);
     const [campStatus, setCampStatus] = useState('Activo');
     const [campNotes, setCampNotes] = useState('');
-    // Member
+    
     const [memName, setMemName] = useState('');
     const [memAlias, setMemAlias] = useState('');
     const [memRole, setMemRole] = useState('Sospechoso');
@@ -81,11 +82,40 @@ function Gangs() {
     const closeModal = () => {
         setActiveModal(null);
         setActiveGroupId(null);
+        setEditingItemId(null);
         // Clean forms
         setGroupName(''); setGroupColor('#8b0000'); setGroupImage(null);
         setCharContent('');
         setCampMapPhoto(null); setCampPhoto(null); setCampStatus('Activo'); setCampNotes('');
         setMemName(''); setMemAlias(''); setMemRole('Sospechoso'); setMemNotes(''); setMemPhoto(null);
+    };
+
+    const handleEditItem = (type, groupId, item) => {
+        setActiveGroupId(groupId);
+        setEditingItemId(item.id);
+        setActiveModal(type);
+        if (type === 'addChar') {
+            setCharContent(item.content);
+        } else if (type === 'addCamp') {
+            setCampMapPhoto(item.map_photo);
+            setCampPhoto(item.camp_photo);
+            setCampStatus(item.status);
+            setCampNotes(item.notes);
+        } else if (type === 'addMember') {
+            setMemName(item.name);
+            setMemAlias(item.alias || '');
+            setMemRole(item.role);
+            setMemNotes(item.notes || '');
+            setMemPhoto(item.photo);
+        }
+    };
+
+    const handleDeleteItem = async (table, id) => {
+        if (!window.confirm("¿Seguro que quieres arrancar este registro del informe?")) return;
+        try {
+            await supabase.rpc('delete_group_item', { p_table: table, p_id: id });
+            loadGroups();
+        } catch (err) { alert(err.message); }
     };
 
     // Submits
@@ -103,7 +133,11 @@ function Gangs() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await supabase.rpc('add_group_characteristic', { p_group_id: activeGroupId, p_content: charContent });
+            if (editingItemId) {
+                await supabase.rpc('update_group_characteristic', { p_id: editingItemId, p_content: charContent });
+            } else {
+                await supabase.rpc('add_group_characteristic', { p_group_id: activeGroupId, p_content: charContent });
+            }
             closeModal();
             loadGroups();
         } catch (err) { alert(err.message); } finally { setSubmitting(false); }
@@ -113,7 +147,11 @@ function Gangs() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await supabase.rpc('add_group_camp', { p_group_id: activeGroupId, p_map_photo: campMapPhoto, p_camp_photo: campPhoto, p_status: campStatus, p_notes: campNotes });
+            if (editingItemId) {
+                await supabase.rpc('update_group_camp', { p_id: editingItemId, p_map_photo: campMapPhoto, p_camp_photo: campPhoto, p_status: campStatus, p_notes: campNotes });
+            } else {
+                await supabase.rpc('add_group_camp', { p_group_id: activeGroupId, p_map_photo: campMapPhoto, p_camp_photo: campPhoto, p_status: campStatus, p_notes: campNotes });
+            }
             closeModal();
             loadGroups();
         } catch (err) { alert(err.message); } finally { setSubmitting(false); }
@@ -123,27 +161,52 @@ function Gangs() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await supabase.rpc('add_group_member', { p_group_id: activeGroupId, p_name: memName, p_alias: memAlias, p_role: memRole, p_notes: memNotes, p_photo: memPhoto });
+            if (editingItemId) {
+                await supabase.rpc('update_group_member', { p_id: editingItemId, p_name: memName, p_alias: memAlias, p_role: memRole, p_notes: memNotes, p_photo: memPhoto });
+            } else {
+                await supabase.rpc('add_group_member', { p_group_id: activeGroupId, p_name: memName, p_alias: memAlias, p_role: memRole, p_notes: memNotes, p_photo: memPhoto });
+            }
             closeModal();
             loadGroups();
         } catch (err) { alert(err.message); } finally { setSubmitting(false); }
     };
 
+    const handleToggleArchive = async (id, currentStatus) => {
+        if (!window.confirm(currentStatus ? "¿Reabrir investigación y transferir a Operativos Activos?" : "¿Sellar y trasladar a los Archivos Muertos de la agencia?")) return;
+        try {
+            await supabase.rpc('toggle_group_archive', { p_group_id: id, p_archive: !currentStatus });
+            loadGroups();
+        } catch (err) { alert(err.message); }
+    };
+
     const handleDeleteGroup = async (id) => {
-        if (!window.confirm("🛑 ¿Quemar y destruir por completo la columna de esta banda?")) return;
+        if (!window.confirm("🛑 ADVERTENCIA DE JEFATURA: Vas a expurgar y quemar la columna entera de esta banda, borrando todos sus sujetos, fotos y mapas permanentemente. ¿Estás absolutamente seguro?")) return;
         try {
             await supabase.rpc('delete_criminal_group_fully', { p_group_id: id });
             loadGroups();
         } catch (err) { alert(err.message); }
     };
 
-    const canManage = currentUser && ['Administrador', 'Coordinador', 'Jefatura'].includes(currentUser.rol);
+    const canManageAll = currentUser && ['Administrador', 'Coordinador', 'Jefatura'].includes(currentUser.rol);
+    const canManageBasics = canManageAll; // Expandible a Agentes si es necesario, pero actualmente restringimos a High Command
+
+    const filteredGroups = groups.filter(g => viewMode === 'active' ? !g.is_archived : g.is_archived);
 
     return (
         <div className="rdr-trello-container">
             <div className="rdr-trello-header">
-                <h2 className="rdr-trello-title">BANDAS Y GRUPOS CRIMINALES</h2>
-                {canManage && (
+                <div style={{display: 'flex', flexDirection: 'column'}}>
+                    <h2 className="rdr-trello-title">ORGANIZACIONES CRIMINALES</h2>
+                    <div style={{display: 'flex', gap: '15px', marginTop: '15px'}}>
+                        <button className="rdr-btn-brown" style={{margin: 0, padding: '5px 15px', opacity: viewMode === 'active' ? 1 : 0.5}} onClick={() => setViewMode('active')}>
+                            OPERATIVOS ACTIVOS
+                        </button>
+                        <button className="rdr-btn-brown" style={{margin: 0, padding: '5px 15px', opacity: viewMode === 'archived' ? 1 : 0.5}} onClick={() => setViewMode('archived')}>
+                            ARCHIVOS MUERTOS
+                        </button>
+                    </div>
+                </div>
+                {canManageAll && viewMode === 'active' && (
                     <button className="rdr-btn-brown" style={{margin: 0}} onClick={() => setActiveModal('createGroup')}>
                         + RASTREAR NUEVA BANDA
                     </button>
@@ -152,7 +215,7 @@ function Gangs() {
 
             {loading ? <div style={{color: '#c0a080', fontFamily: 'Cinzel', textAlign: 'center', marginTop: '3rem'}}>Desplegando la mesa de mapas...</div> : (
                 <div className="rdr-trello-board">
-                    {groups.length === 0 ? <p style={{color: '#c0a080', fontStyle: 'italic', margin: 'auto'}}>No hay grupos criminales detectados en el territorio.</p> : groups.map(g => (
+                    {filteredGroups.length === 0 ? <p style={{color: '#c0a080', fontStyle: 'italic', margin: 'auto'}}>No hay expedientes en esta bandeja.</p> : filteredGroups.map(g => (
                         <div key={g.id} className="rdr-trello-column">
                             <div className="rdr-col-color-bar" style={{backgroundColor: g.color}}></div>
                             
@@ -177,22 +240,34 @@ function Gangs() {
                                 {/* Características */}
                                 <div className="rdr-section-title">
                                     CARACTERÍSTICAS
-                                    {canManage && <button onClick={() => {setActiveGroupId(g.id); setActiveModal('addChar');}} style={{float:'right', background:'none', border:'none', color:'#8b0000', cursor:'pointer'}}>+</button>}
+                                    {canManageBasics && <button onClick={() => {setActiveGroupId(g.id); setActiveModal('addChar');}} style={{float:'right', background:'none', border:'none', color:'#8b0000', cursor:'pointer'}}>+</button>}
                                 </div>
                                 {g.characteristics.length === 0 ? <div style={{fontSize:'0.85rem', color:'#8b5a2b', fontStyle:'italic'}}>Faltan datos...</div> : g.characteristics.map(c => (
                                     <div key={c.id} className="rdr-trello-card" style={{borderLeftColor: g.color}}>
-                                        <div className="rdr-card-text">• {c.content}</div>
+                                        {canManageBasics && (
+                                            <div style={{position: 'absolute', right: '5px', top: '5px', display: 'flex', gap: '10px'}}>
+                                                <span style={{cursor:'pointer', fontSize:'0.8rem'}} onClick={() => handleEditItem('addChar', g.id, c)}>✏️</span>
+                                                <span style={{cursor:'pointer', fontSize:'0.8rem'}} onClick={() => handleDeleteItem('group_characteristics', c.id)}>🗑️</span>
+                                            </div>
+                                        )}
+                                        <div className="rdr-card-text" style={{marginTop:'5px'}}>• {c.content}</div>
                                     </div>
                                 ))}
 
                                 {/* Campamentos */}
                                 <div className="rdr-section-title">
                                     CAMPAMENTOS & ESCONDITES
-                                    {canManage && <button onClick={() => {setActiveGroupId(g.id); setActiveModal('addCamp');}} style={{float:'right', background:'none', border:'none', color:'#8b0000', cursor:'pointer'}}>+</button>}
+                                    {canManageBasics && <button onClick={() => {setActiveGroupId(g.id); setActiveModal('addCamp');}} style={{float:'right', background:'none', border:'none', color:'#8b0000', cursor:'pointer'}}>+</button>}
                                 </div>
                                 {g.camps.length === 0 ? <div style={{fontSize:'0.85rem', color:'#8b5a2b', fontStyle:'italic'}}>Desconocidos...</div> : g.camps.map(c => (
                                     <div key={c.id} className="rdr-trello-card" style={{borderLeftColor: g.color}}>
-                                        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px'}}>
+                                        {canManageBasics && (
+                                            <div style={{position: 'absolute', right: '5px', top: '5px', display: 'flex', gap: '10px'}}>
+                                                <span style={{cursor:'pointer', fontSize:'0.8rem'}} onClick={() => handleEditItem('addCamp', g.id, c)}>✏️</span>
+                                                <span style={{cursor:'pointer', fontSize:'0.8rem'}} onClick={() => handleDeleteItem('group_camps', c.id)}>🗑️</span>
+                                            </div>
+                                        )}
+                                        <div style={{display: 'flex', justifyContent: 'flex-start', marginBottom: '8px'}}>
                                             <span className={`status-${c.status.toLowerCase()}`}>{c.status}</span>
                                         </div>
                                         <div className="rdr-card-text">{c.notes}</div>
@@ -206,10 +281,16 @@ function Gangs() {
                                 {/* Miembros */}
                                 <div className="rdr-section-title">
                                     MIEMBROS DEL GRUPO
-                                    {canManage && <button onClick={() => {setActiveGroupId(g.id); setActiveModal('addMember');}} style={{float:'right', background:'none', border:'none', color:'#8b0000', cursor:'pointer'}}>+</button>}
+                                    {canManageBasics && <button onClick={() => {setActiveGroupId(g.id); setActiveModal('addMember');}} style={{float:'right', background:'none', border:'none', color:'#8b0000', cursor:'pointer'}}>+</button>}
                                 </div>
                                 {g.members.length === 0 ? <div style={{fontSize:'0.85rem', color:'#8b5a2b', fontStyle:'italic'}}>Sin sujetos registrados...</div> : g.members.map(m => (
                                     <div key={m.id} className="rdr-trello-card" style={{borderLeftColor: g.color}}>
+                                        {canManageBasics && (
+                                            <div style={{position: 'absolute', right: '5px', top: '5px', display: 'flex', gap: '10px'}}>
+                                                <span style={{cursor:'pointer', fontSize:'0.8rem'}} onClick={() => handleEditItem('addMember', g.id, m)}>✏️</span>
+                                                <span style={{cursor:'pointer', fontSize:'0.8rem'}} onClick={() => handleDeleteItem('group_members', m.id)}>🗑️</span>
+                                            </div>
+                                        )}
                                         <div className="rdr-member-header">
                                             {m.photo ? <img src={m.photo} className="rdr-member-avatar" alt="Mugshot" onClick={() => setExpandedImage(m.photo)}/> : <div className="rdr-member-avatar" style={{background:'#d4c5a7', display:'flex', alignItems:'center', justifyContent:'center'}}>?</div>}
                                             <div>
@@ -222,9 +303,16 @@ function Gangs() {
                                     </div>
                                 ))}
 
-                                {canManage && (
-                                    <button onClick={() => handleDeleteGroup(g.id)} style={{width: '100%', marginTop: '20px', background: 'transparent', border: '1px dashed #8b0000', color: '#8b0000', padding: '10px', fontFamily: 'Cinzel', cursor: 'pointer', opacity: 0.5}}>QUEMAR ARCHIVO DE BANDA</button>
-                                )}
+                                <div style={{marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                                    {canManageAll && (
+                                        <button onClick={() => handleToggleArchive(g.id, g.is_archived)} style={{width: '100%', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid #d4af37', color: '#1a0f0a', padding: '10px', fontFamily: 'Cinzel', cursor: 'pointer', fontWeight: 'bold'}}>
+                                            {g.is_archived ? "RESTAURAR A OPERATIVOS" : "ARCHIVAR BANDA"}
+                                        </button>
+                                    )}
+                                    {canManageAll && (
+                                        <button onClick={() => handleDeleteGroup(g.id)} style={{width: '100%', background: 'transparent', border: '1px dashed #8b0000', color: '#8b0000', padding: '10px', fontFamily: 'Cinzel', cursor: 'pointer', opacity: 0.8}}>QUEMAR ARCHIVO DE BANDA</button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -247,8 +335,11 @@ function Gangs() {
                             </div>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Mapa de Zona de Influencia</label>
-                                <input type="file" className="rdr-input" accept="image/*" onChange={e => handleImageUpload(e, setGroupImage)} />
-                                {groupImage && <img src={groupImage} alt="Preview" style={{width: '100px', marginTop: '10px'}}/>}
+                                <label className="rdr-btn-brown" style={{ width: '100%', display: 'block', cursor: 'pointer', textAlign: 'center', background: 'transparent', borderColor: '#8b5a2b', color: '#e4d5b7', borderStyle: 'dashed', padding: '10px', boxSizing: 'border-box' }}>
+                                    {groupImage ? 'MODIFICAR SELECCIÓN' : 'ADJUNTAR ESTAMPA (MAPA)'}
+                                    <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setGroupImage)} style={{ display: 'none' }} />
+                                </label>
+                                {groupImage && <img src={groupImage} alt="Preview" style={{width: '100px', marginTop: '10px', border: '2px solid #8b5a2b', borderRadius: '2px'}}/>}
                             </div>
                             <div style={{display:'flex', gap:'10px', justifyContent:'flex-end', marginTop:'2rem'}}>
                                 <button type="button" className="rdr-btn-brown" style={{background:'transparent'}} onClick={closeModal}>Cancelar</button>
@@ -262,7 +353,7 @@ function Gangs() {
             {activeModal === 'addChar' && (
                 <div className="rdr-modal-overlay">
                     <div className="rdr-modal-content" style={{maxWidth: '400px'}}>
-                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>AÑADIR CARACTERÍSTICA</h2>
+                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>{editingItemId ? 'ACTUALIZAR NOTA' : 'AÑADIR CARACTERÍSTICA'}</h2>
                         <form onSubmit={handleAddCharacteristic}>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Comportamiento / Descripción</label>
@@ -270,7 +361,7 @@ function Gangs() {
                             </div>
                             <div style={{display:'flex', gap:'10px', justifyContent:'flex-end', marginTop:'2rem'}}>
                                 <button type="button" className="rdr-btn-brown" style={{background:'transparent'}} onClick={closeModal}>Cancelar</button>
-                                <button type="submit" className="rdr-btn-brown" disabled={submitting}>Añadir</button>
+                                <button type="submit" className="rdr-btn-brown" disabled={submitting}>{editingItemId ? 'Guardar' : 'Añadir'}</button>
                             </div>
                         </form>
                     </div>
@@ -280,7 +371,7 @@ function Gangs() {
             {activeModal === 'addCamp' && (
                 <div className="rdr-modal-overlay">
                     <div className="rdr-modal-content" style={{maxWidth: '500px'}}>
-                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>REGISTRAR CAMPAMENTO</h2>
+                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>{editingItemId ? 'MODIFICAR CAMPAMENTO' : 'REGISTRAR CAMPAMENTO'}</h2>
                         <form onSubmit={handleAddCamp}>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Estado Actual</label>
@@ -296,13 +387,19 @@ function Gangs() {
                             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
                                 <div className="rdr-form-group">
                                     <label className="rdr-form-label">Foto de Posición (Mapa)</label>
-                                    <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setCampMapPhoto)}/>
-                                    {campMapPhoto && <img src={campMapPhoto} style={{width:'100%', marginTop:'5px'}}/>}
+                                    <label className="rdr-btn-brown" style={{ width: '100%', display: 'block', cursor: 'pointer', textAlign: 'center', background: 'transparent', borderColor: '#8b5a2b', color: '#e4d5b7', borderStyle: 'dashed', padding: '10px', boxSizing: 'border-box' }}>
+                                        {campMapPhoto ? 'MODIFICAR ARCHIVO' : 'SUBIR CROQUIS'}
+                                        <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setCampMapPhoto)} style={{ display: 'none' }} />
+                                    </label>
+                                    {campMapPhoto && <img src={campMapPhoto} style={{width:'100%', marginTop:'5px', border: '2px solid #8b5a2b'}}/>}
                                 </div>
                                 <div className="rdr-form-group">
                                     <label className="rdr-form-label">Foto del Frontal (Terreno)</label>
-                                    <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setCampPhoto)}/>
-                                    {campPhoto && <img src={campPhoto} style={{width:'100%', marginTop:'5px'}}/>}
+                                    <label className="rdr-btn-brown" style={{ width: '100%', display: 'block', cursor: 'pointer', textAlign: 'center', background: 'transparent', borderColor: '#8b5a2b', color: '#e4d5b7', borderStyle: 'dashed', padding: '10px', boxSizing: 'border-box' }}>
+                                        {campPhoto ? 'MODIFICAR ARCHIVO' : 'SUBIR FOTOGRAFÍA'}
+                                        <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setCampPhoto)} style={{ display: 'none' }} />
+                                    </label>
+                                    {campPhoto && <img src={campPhoto} style={{width:'100%', marginTop:'5px', border: '2px solid #8b5a2b'}}/>}
                                 </div>
                             </div>
                             <div style={{display:'flex', gap:'10px', justifyContent:'flex-end', marginTop:'2rem'}}>
@@ -317,7 +414,7 @@ function Gangs() {
             {activeModal === 'addMember' && (
                 <div className="rdr-modal-overlay">
                     <div className="rdr-modal-content" style={{maxWidth: '450px'}}>
-                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>FICHAR MIEMBRO</h2>
+                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>{editingItemId ? 'EDITAR FICHA' : 'FICHAR MIEMBRO'}</h2>
                         <form onSubmit={handleAddMember}>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Nombres y Apellidos</label>
@@ -339,8 +436,11 @@ function Gangs() {
                             </div>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Fotografía o Retrato</label>
-                                <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setMemPhoto)}/>
-                                {memPhoto && <img src={memPhoto} style={{width:'80px', marginTop:'5px'}}/>}
+                                <label className="rdr-btn-brown" style={{ width: '100%', display: 'block', cursor: 'pointer', textAlign: 'center', background: 'transparent', borderColor: '#8b5a2b', color: '#e4d5b7', borderStyle: 'dashed', padding: '10px', boxSizing: 'border-box' }}>
+                                    {memPhoto ? 'MODIFICAR RETRATO' : 'ADJUNTAR ESTAMPA'}
+                                    <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setMemPhoto)} style={{ display: 'none' }} />
+                                </label>
+                                {memPhoto && <img src={memPhoto} style={{width:'80px', marginTop:'5px', border: '2px solid #8b5a2b'}}/>}
                             </div>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Anotaciones del Sujeto</label>

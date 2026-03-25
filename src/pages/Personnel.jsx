@@ -16,6 +16,7 @@ function Personnel() {
 
     // Auth State
     const [currentUserRole, setCurrentUserRole] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     // Global Presence
     const { onlineUsers } = usePresence();
@@ -67,6 +68,7 @@ function Personnel() {
             // 1. Get Current User and Role
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                setCurrentUserId(user.id);
                 const { data: profile } = await supabase
                     .from('users')
                     .select('rol')
@@ -208,32 +210,12 @@ function Personnel() {
                     p_password: formData.password, 
                     p_nombre: formData.nombre,
                     p_apellido: formData.apellido,
-                    p_no_placa: formData.no_placa,
                     p_rango: formData.rango,
                     p_rol: formData.rol,
                     p_fecha_ingreso: formData.fecha_ingreso || null,
-                    p_fecha_ultimo_ascenso: null,
-                    p_profile_image: formData.profile_image || null,
-                    p_divisions: [] // Dummy mapping for legacy backwards compat in RPC just in case, though removed from DB schema
+                    p_profile_image: formData.profile_image || null
                 });
-                if (error) {
-                    // Si falla porque el script ignora p_divisions intentemos sin él
-                    if (error.message.includes('No function matches')) {
-                        const { error: err2 } = await supabase.rpc('create_new_personnel', {
-                            p_email: formData.email,
-                            p_password: formData.password, 
-                            p_nombre: formData.nombre,
-                            p_apellido: formData.apellido,
-                            p_rango: formData.rango,
-                            p_rol: formData.rol,
-                            p_fecha_ingreso: formData.fecha_ingreso || null,
-                            p_profile_image: formData.profile_image || null
-                        });
-                        if(err2) throw err2;
-                    } else {
-                        throw error;
-                    }
-                }
+                if (error) throw error;
                 setMessage({ type: 'success', text: 'Agente alistado exitosamente.' });
             } else {
                 // Update
@@ -243,32 +225,12 @@ function Personnel() {
                     p_password: formData.password || null, 
                     p_nombre: formData.nombre,
                     p_apellido: formData.apellido,
-                    p_no_placa: formData.no_placa,
                     p_rango: formData.rango,
                     p_rol: formData.rol,
                     p_fecha_ingreso: formData.fecha_ingreso || null,
-                    p_fecha_ultimo_ascenso: null,
-                    p_profile_image: formData.profile_image || null,
-                    p_divisions: [] // Dummy
+                    p_profile_image: formData.profile_image || null
                 });
-                if (error) {
-                    if (error.message.includes('No function matches')) {
-                        const { error: err2 } = await supabase.rpc('update_personnel_admin', {
-                            p_user_id: editingUserId,
-                            p_email: formData.email,
-                            p_password: formData.password || null, 
-                            p_nombre: formData.nombre,
-                            p_apellido: formData.apellido,
-                            p_rango: formData.rango,
-                            p_rol: formData.rol,
-                            p_fecha_ingreso: formData.fecha_ingreso || null,
-                            p_profile_image: formData.profile_image || null
-                        });
-                        if(err2) throw err2;
-                    } else {
-                        throw error;
-                    }
-                }
+                if (error) throw error;
                 setMessage({ type: 'success', text: 'Expediente actualizado.' });
             }
 
@@ -379,18 +341,21 @@ function Personnel() {
                                 <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Correo Telegráfico (Email)</label>
                                 <input required type="email" name="email" className="rdr-input" value={formData.email} onChange={handleInputChange} />
                             </div>
-                            <div>
-                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Contraseña {modalMode === 'edit' && '(Opcional)'}</label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    className="rdr-input"
-                                    value={formData.password}
-                                    onChange={handleInputChange}
-                                    required={modalMode === 'create'}
-                                    placeholder={modalMode === 'edit' ? "Dejar en blanco para mantener" : ""}
-                                />
-                            </div>
+                            
+                            {(modalMode === 'create' || currentUserRole === 'Administrador' || currentUserId === editingUserId) && (
+                                <div>
+                                    <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Contraseña {modalMode === 'edit' && '(Opcional)'}</label>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        className="rdr-input"
+                                        value={formData.password}
+                                        onChange={handleInputChange}
+                                        required={modalMode === 'create'}
+                                        placeholder={modalMode === 'edit' ? "Dejar en blanco para mantener" : ""}
+                                    />
+                                </div>
+                            )}
 
                             <div>
                                 <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Nombre</label>

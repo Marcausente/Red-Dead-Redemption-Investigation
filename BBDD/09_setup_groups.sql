@@ -6,6 +6,11 @@ DROP FUNCTION IF EXISTS public.add_group_characteristic(UUID, TEXT);
 DROP FUNCTION IF EXISTS public.add_group_camp(UUID, TEXT, TEXT, TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.add_group_member(UUID, TEXT, TEXT, TEXT, TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.delete_criminal_group_fully(UUID);
+DROP FUNCTION IF EXISTS public.toggle_group_archive(UUID, BOOLEAN);
+DROP FUNCTION IF EXISTS public.delete_group_item(TEXT, UUID);
+DROP FUNCTION IF EXISTS public.update_group_characteristic(UUID, TEXT);
+DROP FUNCTION IF EXISTS public.update_group_camp(UUID, TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.update_group_member(UUID, TEXT, TEXT, TEXT, TEXT, TEXT);
 
 DROP TABLE IF EXISTS public.group_members CASCADE;
 DROP TABLE IF EXISTS public.group_camps CASCADE;
@@ -17,6 +22,7 @@ CREATE TABLE public.criminal_groups (
     name TEXT NOT NULL,
     color TEXT DEFAULT '#8b0000',
     influence_zone_image TEXT,
+    is_archived BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -70,6 +76,7 @@ BEGIN
             'name', g.name,
             'color', g.color,
             'influence_zone_image', g.influence_zone_image,
+            'is_archived', g.is_archived,
             'characteristics', (SELECT COALESCE(json_agg(row_to_json(c)), '[]') FROM public.group_characteristics c WHERE c.group_id = g.id),
             'camps', (SELECT COALESCE(json_agg(row_to_json(ca)), '[]') FROM public.group_camps ca WHERE ca.group_id = g.id),
             'members', (SELECT COALESCE(json_agg(row_to_json(m)), '[]') FROM public.group_members m WHERE m.group_id = g.id)
@@ -100,4 +107,29 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION delete_criminal_group_fully(p_group_id UUID) RETURNS VOID AS $$
 BEGIN DELETE FROM public.criminal_groups WHERE id = p_group_id; END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION toggle_group_archive(p_group_id UUID, p_archive BOOLEAN) RETURNS VOID AS $$
+BEGIN UPDATE public.criminal_groups SET is_archived = p_archive WHERE id = p_group_id; END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION delete_group_item(p_table TEXT, p_id UUID) RETURNS VOID AS $$
+BEGIN
+    IF p_table = 'group_characteristics' THEN DELETE FROM public.group_characteristics WHERE id = p_id;
+    ELSIF p_table = 'group_camps' THEN DELETE FROM public.group_camps WHERE id = p_id;
+    ELSIF p_table = 'group_members' THEN DELETE FROM public.group_members WHERE id = p_id;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_group_characteristic(p_id UUID, p_content TEXT) RETURNS VOID AS $$
+BEGIN UPDATE public.group_characteristics SET content = p_content WHERE id = p_id; END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_group_camp(p_id UUID, p_map_photo TEXT, p_camp_photo TEXT, p_status TEXT, p_notes TEXT) RETURNS VOID AS $$
+BEGIN UPDATE public.group_camps SET map_photo = COALESCE(p_map_photo, map_photo), camp_photo = COALESCE(p_camp_photo, camp_photo), status = p_status, notes = p_notes WHERE id = p_id; END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_group_member(p_id UUID, p_name TEXT, p_alias TEXT, p_role TEXT, p_notes TEXT, p_photo TEXT) RETURNS VOID AS $$
+BEGIN UPDATE public.group_members SET name = p_name, alias = p_alias, role = p_role, notes = p_notes, photo = COALESCE(p_photo, photo) WHERE id = p_id; END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
