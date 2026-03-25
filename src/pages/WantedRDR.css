@@ -21,7 +21,7 @@
     text-transform: uppercase;
     letter-spacing: 8px;
     margin: 0 0 0.5rem 0;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
 
 .wanted-subtitle {
@@ -79,13 +79,13 @@
 .wanted-card {
     background-color: #e8d8a8;
     background-image:
-        linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, transparent 50%),
         radial-gradient(ellipse at center, transparent 0%, rgba(100, 60, 10, 0.25) 100%);
     border: 3px solid #7a4f1d;
     border-radius: 2px;
     padding: 0;
     box-shadow:
-        5px 8px 20px rgba(0,0,0,0.75),
+        5px 8px 20px rgba(0, 0, 0, 0.75),
         inset 0 0 50px rgba(120, 80, 20, 0.2);
     position: relative;
     transition: transform 0.3s ease;
@@ -94,7 +94,7 @@
 .wanted-card:hover {
     transform: scale(1.02) rotate(0deg) !important;
     z-index: 10;
-    box-shadow: 8px 12px 30px rgba(0,0,0,0.85);
+    box-shadow: 8px 12px 30px rgba(0, 0, 0, 0.85);
 }
 
 /* Clavo decorativo */
@@ -108,14 +108,22 @@
     height: 14px;
     background: radial-gradient(circle at 30% 30%, #6b4c2a, #1a0f0a);
     border-radius: 50%;
-    box-shadow: 1px 2px 4px rgba(0,0,0,0.7), inset -1px -1px 2px rgba(0,0,0,0.8);
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.7), inset -1px -1px 2px rgba(0, 0, 0, 0.8);
     z-index: 5;
 }
 
 /* Rotation */
-.wanted-card:nth-child(odd) { transform: rotate(-1deg); }
-.wanted-card:nth-child(even) { transform: rotate(0.8deg); }
-.wanted-card:nth-child(3n) { transform: rotate(-0.4deg); }
+.wanted-card:nth-child(odd) {
+    transform: rotate(-1deg);
+}
+
+.wanted-card:nth-child(even) {
+    transform: rotate(0.8deg);
+}
+
+.wanted-card:nth-child(3n) {
+    transform: rotate(-0.4deg);
+}
 
 .wanted-card-inner {
     padding: 2rem 1.5rem 1.5rem;
@@ -137,7 +145,7 @@
     border-bottom: 3px double #7a4f1d;
     padding: 0.4rem 1rem;
     width: 100%;
-    text-shadow: 1px 1px 2px rgba(150,20,20,0.3);
+    text-shadow: 1px 1px 2px rgba(150, 20, 20, 0.3);
 }
 
 .wanted-photo-container {
@@ -149,7 +157,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.3), 2px 2px 8px rgba(0,0,0,0.5);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3), 2px 2px 8px rgba(0, 0, 0, 0.5);
     margin: 0.5rem 0;
 }
 
@@ -242,7 +250,7 @@
     gap: 5px;
     padding: 0.7rem 1rem;
     border-top: 1px dashed rgba(122, 79, 29, 0.4);
-    background: rgba(0,0,0,0.05);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .wanted-action-btn {
@@ -255,7 +263,7 @@
     font-weight: bold;
     text-transform: uppercase;
     cursor: pointer;
-    box-shadow: 1px 1px 0px rgba(0,0,0,0.5);
+    box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
     transition: all 0.2s;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -264,7 +272,7 @@
 .wanted-action-btn:hover {
     background: #5c4033;
     transform: translate(-1px, -1px);
-    box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
 }
 
 .wanted-action-btn.danger {
@@ -292,7 +300,10 @@
 /* Modal */
 .wanted-modal-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(10, 5, 0, 0.88);
     display: flex;
     justify-content: center;
@@ -309,11 +320,17 @@
     width: 92%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 0 40px rgba(0,0,0,0.95);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.95);
 }
 
-.wanted-modal-content::-webkit-scrollbar { width: 8px; }
-.wanted-modal-content::-webkit-scrollbar-thumb { background: #8b5a2b; border-radius: 4px; }
+.wanted-modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.wanted-modal-content::-webkit-scrollbar-thumb {
+    background: #8b5a2b;
+    border-radius: 4px;
+}
 
 .wanted-modal-title {
     font-family: 'Cinzel', serif;
@@ -323,30 +340,35 @@
     text-transform: uppercase;
     text-align: center;
     letter-spacing: 3px;
-    border-bottom: 1px solid rgba(212,175,55,0.3);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
     padding-bottom: 0.7rem;
 }
 
-/* The printable poster used for PNG export (hidden off-screen) */
 .wanted-export-poster {
     position: fixed;
     left: -9999px;
     top: 0;
-    width: 420px;
+    width: 400px;
+    height: 512px;
     background-color: #e8d8a8;
     background-image: radial-gradient(ellipse at center, transparent 0%, rgba(100, 60, 10, 0.3) 100%);
     border: 6px solid #7a4f1d;
     padding: 0;
+    margin: 0;
     font-family: 'Cinzel', serif;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .wep-inner {
-    padding: 30px 25px 20px;
+    padding: 20px 20px 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 10px;
+    gap: 8px;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .wep-bureau {
@@ -358,25 +380,26 @@
 }
 
 .wep-wanted {
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 900;
     color: #8b0000;
     text-transform: uppercase;
-    letter-spacing: 10px;
+    letter-spacing: 8px;
     border-top: 4px double #7a4f1d;
     border-bottom: 4px double #7a4f1d;
-    padding: 6px 30px;
+    padding: 4px 20px;
     width: 100%;
-    text-shadow: 1px 1px 3px rgba(180,30,30,0.4);
+    text-shadow: 1px 1px 3px rgba(180, 30, 30, 0.4);
 }
 
 .wep-photo {
-    width: 200px;
-    height: 230px;
+    width: 170px;
+    height: 190px;
     border: 4px solid #7a4f1d;
     overflow: hidden;
     background: #c8b88a;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.3), 3px 3px 10px rgba(0,0,0,0.5);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3), 3px 3px 10px rgba(0, 0, 0, 0.5);
+    margin: 2px 0;
 }
 
 .wep-photo img {
@@ -442,7 +465,7 @@
     font-size: 0.55rem;
     color: #7a4f1d;
     font-style: italic;
-    border-top: 1px solid rgba(122,79,29,0.4);
+    border-top: 1px solid rgba(122, 79, 29, 0.4);
     width: 100%;
     padding-top: 6px;
     margin-top: 4px;

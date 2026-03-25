@@ -162,7 +162,9 @@ function Wanted() {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: null,
-                logging: false
+                logging: false,
+                width: 400,
+                height: 512
             });
             const link = document.createElement('a');
             link.download = `cartel_${poster.fugitive_name}_${poster.fugitive_surname || ''}.png`;
@@ -220,7 +222,7 @@ function Wanted() {
                 <div className="wanted-photo-container">
                     {poster.photo
                         ? <img src={poster.photo} alt="Fugitivo" />
-                        : <div className="wanted-no-photo">SIN FOTOGRAFÍA<br/>DISPONIBLE</div>
+                        : <div className="wanted-no-photo">SIN FOTOGRAFÍA<br />DISPONIBLE</div>
                     }
                 </div>
                 <div className="wanted-fugitive-name">
