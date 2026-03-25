@@ -12,7 +12,6 @@ import Personnel from './pages/Personnel';
 import PersonnelDetail from './pages/PersonnelDetail';
 import Documentation from './pages/Documentation';
 import CrimeMap from './pages/CrimeMap'; 
-import PublicGangMap from './pages/PublicGangMap';
 import Wanted from './pages/Wanted';
 import MainLayout from './components/MainLayout';
 import { PresenceProvider } from './contexts/PresenceContext';
@@ -24,7 +23,6 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/public-map" element={<PublicGangMap />} />
           <Route path="/welcome" element={<Welcome />} />
 
           <Route element={<MainLayout />}>
