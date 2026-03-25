@@ -14,7 +14,7 @@ DROP TABLE IF EXISTS public.incidents CASCADE;
 
 CREATE TABLE public.incidents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    incident_number SERIAL,
+    incident_number TEXT,
     title TEXT NOT NULL,
     group_id UUID REFERENCES public.criminal_groups(id) ON DELETE SET NULL,
     occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -32,7 +32,7 @@ CREATE TABLE public.incident_images (
 
 CREATE TABLE public.field_operations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    op_number SERIAL,
+    op_number TEXT,
     title TEXT NOT NULL,
     group_id UUID REFERENCES public.criminal_groups(id) ON DELETE SET NULL,
     occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -107,14 +107,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- CREATE
 CREATE OR REPLACE FUNCTION create_incident(
-    p_title TEXT, p_group_id UUID, p_occurred_at TIMESTAMP WITH TIME ZONE, 
+    p_number TEXT, p_title TEXT, p_group_id UUID, p_occurred_at TIMESTAMP WITH TIME ZONE, 
     p_location TEXT, p_description TEXT, p_images TEXT[]
 ) RETURNS VOID AS $$
 DECLARE
     new_id UUID;
 BEGIN
-    INSERT INTO public.incidents (title, group_id, occurred_at, location, description, created_by)
-    VALUES (p_title, p_group_id, p_occurred_at, p_location, p_description, auth.uid()) RETURNING id INTO new_id;
+    INSERT INTO public.incidents (incident_number, title, group_id, occurred_at, location, description, created_by)
+    VALUES (p_number, p_title, p_group_id, p_occurred_at, p_location, p_description, auth.uid()) RETURNING id INTO new_id;
 
     IF array_length(p_images, 1) > 0 THEN
         INSERT INTO public.incident_images (incident_id, photo) SELECT new_id, unnest(p_images);
@@ -123,14 +123,14 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION create_field_operation(
-    p_title TEXT, p_group_id UUID, p_occurred_at TIMESTAMP WITH TIME ZONE,
+    p_number TEXT, p_title TEXT, p_group_id UUID, p_occurred_at TIMESTAMP WITH TIME ZONE,
     p_reason TEXT, p_info TEXT, p_agents UUID[], p_images TEXT[]
 ) RETURNS VOID AS $$
 DECLARE
     new_id UUID;
 BEGIN
-    INSERT INTO public.field_operations (title, group_id, occurred_at, reason, information_obtained, created_by)
-    VALUES (p_title, p_group_id, p_occurred_at, p_reason, p_info, auth.uid()) RETURNING id INTO new_id;
+    INSERT INTO public.field_operations (op_number, title, group_id, occurred_at, reason, information_obtained, created_by)
+    VALUES (p_number, p_title, p_group_id, p_occurred_at, p_reason, p_info, auth.uid()) RETURNING id INTO new_id;
 
     IF array_length(p_agents, 1) > 0 THEN
         INSERT INTO public.field_op_agents (op_id, user_id) SELECT new_id, unnest(p_agents);
@@ -164,8 +164,8 @@ BEGIN
             'color', g.color,
             'influence_zone_image', g.influence_zone_image,
             'is_archived', g.is_archived,
-            'incident_count', (SELECT count(*) FROM public.incidents WHERE group_id = g.id),
-            'fieldop_count', (SELECT count(*) FROM public.field_operations WHERE group_id = g.id),
+            'incidents', (SELECT COALESCE(json_agg(json_build_object('id', i.id, 'number', i.incident_number, 'title', i.title, 'date', i.occurred_at, 'location', i.location)), '[]') FROM public.incidents i WHERE i.group_id = g.id),
+            'field_ops', (SELECT COALESCE(json_agg(json_build_object('id', fo.id, 'number', fo.op_number, 'title', fo.title, 'date', fo.occurred_at, 'reason', fo.reason)), '[]') FROM public.field_operations fo WHERE fo.group_id = g.id),
             'characteristics', (SELECT COALESCE(json_agg(row_to_json(c)), '[]') FROM public.group_characteristics c WHERE c.group_id = g.id),
             'camps', (SELECT COALESCE(json_agg(row_to_json(ca)), '[]') FROM public.group_camps ca WHERE ca.group_id = g.id),
             'cases', (SELECT COALESCE(json_agg(json_build_object('id', gc.id, 'case_id', cc.id, 'case_number', cc.case_number, 'title', cc.title, 'status', cc.status, 'notes', gc.notes)), '[]') FROM public.group_cases gc JOIN public.cases cc ON cc.id = gc.case_id WHERE gc.group_id = g.id),

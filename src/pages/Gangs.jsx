@@ -310,8 +310,8 @@ function Gangs() {
                             </div>
 
                             <div className="rdr-col-stats">
-                                <div>Incidentes: <span style={{color: '#8b0000'}}>{g.incident_count || 0}</span></div>
-                                <div>Salidas: <span style={{color: '#2e4a2e'}}>{g.fieldop_count || 0}</span></div>
+                                <div style={{cursor: 'pointer'}} onClick={() => { setActiveGroupId(g.id); setActiveModal('viewIncidents'); }}>Incidentes: <span style={{color: '#8b0000', textDecoration: 'underline'}}>{g.incidents?.length || 0}</span></div>
+                                <div style={{cursor: 'pointer'}} onClick={() => { setActiveGroupId(g.id); setActiveModal('viewFieldOps'); }}>Salidas: <span style={{color: '#2e4a2e', textDecoration: 'underline'}}>{g.field_ops?.length || 0}</span></div>
                             </div>
 
                             <div className="rdr-col-body">
@@ -578,6 +578,47 @@ function Gangs() {
                                 <button type="submit" className="rdr-btn-brown" disabled={submitting}>Oficializar Vínculo</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {activeModal === 'viewIncidents' && (
+                <div className="rdr-modal-overlay">
+                    <div className="rdr-modal-content" style={{ maxWidth: '600px' }}>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center', color: '#8b0000' }}>HISTORIAL DE INCIDENTES</h2>
+                        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                            {groups.find(g => g.id === activeGroupId)?.incidents?.length === 0 ? <p style={{ color: '#8b5a2b', fontStyle: 'italic', textAlign: 'center' }}>No constan incidentes atribuidos.</p> : groups.find(g => g.id === activeGroupId)?.incidents?.map(i => (
+                                <div key={i.id} style={{ padding: '10px', borderBottom: '1px dashed #8b5a2b', marginBottom: '10px' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#8b5a2b', fontWeight: 'bold' }}>INCIDENTE Nº {i.number || 'N/A'}</div>
+                                    <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.1rem', color: '#1a0f0a' }}>{i.title?.toUpperCase()}</div>
+                                    <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#5c4033' }}>🕒 {new Date(i.date).toLocaleDateString()} {i.location && `- 📍 ${i.location}`}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+                            <button className="rdr-btn-brown" onClick={closeModal}>CERRAR REGISTRO</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeModal === 'viewFieldOps' && (
+                <div className="rdr-modal-overlay">
+                    <div className="rdr-modal-content" style={{ maxWidth: '600px' }}>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center', color: '#2e4a2e' }}>EXPEDICIONES DE CAMPO</h2>
+                        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
+                            {groups.find(g => g.id === activeGroupId)?.field_ops?.length === 0 ? <p style={{ color: '#8b5a2b', fontStyle: 'italic', textAlign: 'center' }}>No existen permisos de expedición registrados.</p> : groups.find(g => g.id === activeGroupId)?.field_ops?.map(o => (
+                                <div key={o.id} style={{ padding: '10px', borderBottom: '1px dashed #8b5a2b', marginBottom: '10px' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#556b2f', fontWeight: 'bold' }}>EXPEDICIÓN Nº {o.number || 'N/A'}</div>
+                                    <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.1rem', color: '#1a0f0a' }}>{o.title?.toUpperCase()}</div>
+                                    <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#5c4033' }}>🕒 {new Date(o.date).toLocaleDateString()}</div>
+                                    {o.reason && <div style={{ fontSize: '0.9rem', color: '#1a0f0a', marginTop: '5px' }}>{o.reason}</div>}
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+                            <button className="rdr-btn-brown" style={{ background: 'rgba(46, 74, 46, 0.4)' }} onClick={closeModal}>CERRAR REGISTRO</button>
+                        </div>
                     </div>
                 </div>
             )}

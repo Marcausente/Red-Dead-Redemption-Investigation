@@ -19,6 +19,7 @@ function Incidents() {
     const [submitting, setSubmitting] = useState(false);
 
     // Common states
+    const [incidentNumber, setIncidentNumber] = useState('');
     const [title, setTitle] = useState('');
     const [groupId, setGroupId] = useState('');
     const [occurredAt, setOccurredAt] = useState('');
@@ -83,7 +84,7 @@ function Incidents() {
 
     const closeModal = () => {
         setActiveModal(null);
-        setTitle(''); setGroupId(''); setOccurredAt(''); setLocation('');
+        setIncidentNumber(''); setTitle(''); setGroupId(''); setOccurredAt('1880-01-01T12:00'); setLocation('');
         setDescription(''); setImages([]); setReason(''); setInfo(''); setSelectedAgents([]);
     };
 
@@ -97,9 +98,10 @@ function Incidents() {
         setSubmitting(true);
         try {
             await supabase.rpc('create_incident', {
+                p_number: incidentNumber,
                 p_title: title,
                 p_group_id: groupId || null,
-                p_occurred_at: occurredAt || new Date().toISOString(),
+                p_occurred_at: occurredAt || '1880-01-01T12:00:00.000Z',
                 p_location: location,
                 p_description: description,
                 p_images: images
@@ -114,9 +116,10 @@ function Incidents() {
         setSubmitting(true);
         try {
             await supabase.rpc('create_field_operation', {
+                p_number: incidentNumber,
                 p_title: title,
                 p_group_id: groupId || null,
-                p_occurred_at: occurredAt || new Date().toISOString(),
+                p_occurred_at: occurredAt || '1880-01-01T12:00:00.000Z',
                 p_reason: reason,
                 p_info: info,
                 p_agents: selectedAgents,
@@ -154,7 +157,7 @@ function Incidents() {
         <div className="rdr-trello-card" style={{ borderLeftColor: i.group_color || '#c0a080' }}>
             <span style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem' }} onClick={() => handleDeleteIncident(i.id, 'inc')}>🗑️</span>
 
-            <div style={{ fontSize: '0.7rem', color: '#8b5a2b', fontWeight: 'bold' }}>INCIDENTE Nº 00{i.number}</div>
+            <div style={{ fontSize: '0.7rem', color: '#8b5a2b', fontWeight: 'bold' }}>INCIDENTE Nº {i.number || 'N/A'}</div>
             <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.2rem', color: '#1a0f0a', margin: '5px 0' }}>{i.title.toUpperCase()}</div>
 
             <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#8b5a2b', display: 'flex', flexDirection: 'column' }}>
@@ -179,7 +182,7 @@ function Incidents() {
         <div className="rdr-trello-card" style={{ borderLeftColor: o.group_color || '#2e4a2e' }}>
             <span style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem' }} onClick={() => handleDeleteIncident(o.id, 'op')}>🗑️</span>
 
-            <div style={{ fontSize: '0.7rem', color: '#556b2f', fontWeight: 'bold' }}>EXPEDICIÓN Nº OP-{o.number}</div>
+            <div style={{ fontSize: '0.7rem', color: '#556b2f', fontWeight: 'bold' }}>EXPEDICIÓN Nº {o.number || 'N/A'}</div>
             <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.2rem', color: '#1a0f0a', margin: '5px 0' }}>{o.title.toUpperCase()}</div>
 
             <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#8b5a2b', display: 'flex', flexDirection: 'column' }}>
@@ -224,8 +227,8 @@ function Incidents() {
                     <p style={{ fontFamily: 'Playfair Display', color: '#c0a080', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>Muro de seguimiento de la actividad criminal en el Estado</p>
                 </div>
                 <div style={{ display: 'flex', gap: '15px' }}>
-                    <button className="rdr-btn-brown" style={{ margin: 0 }} onClick={() => setActiveModal('incident')}>+ CINTA DE INCIDENTE</button>
-                    <button className="rdr-btn-brown" style={{ margin: 0, background: 'rgba(46, 74, 46, 0.4)', borderColor: '#556b2f' }} onClick={() => setActiveModal('fieldop')}>+ REGISTRAR SALIDA</button>
+                    <button className="rdr-btn-brown" style={{ margin: 0 }} onClick={() => { setActiveModal('incident'); setOccurredAt('1880-01-01T12:00'); }}>+ CINTA DE INCIDENTE</button>
+                    <button className="rdr-btn-brown" style={{ margin: 0, background: 'rgba(46, 74, 46, 0.4)', borderColor: '#556b2f' }} onClick={() => { setActiveModal('fieldop'); setOccurredAt('1880-01-01T12:00'); }}>+ REGISTRAR SALIDA</button>
                 </div>
             </div>
 
@@ -277,12 +280,18 @@ function Incidents() {
                     <div className="rdr-modal-content" style={{ maxWidth: '550px' }}>
                         <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>REPORTE DE INCIDENTE</h2>
                         <form onSubmit={handleSubmitIncident}>
-                            <div className="rdr-form-group">
-                                <label className="rdr-form-label">Titular Oficial</label>
-                                <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
+                            <div style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '1rem' }}>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Nº Caso</label>
+                                    <input type="text" className="rdr-input" required value={incidentNumber} onChange={e => setIncidentNumber(e.target.value)} placeholder="001" style={{ width: '80px' }}/>
+                                </div>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Titular Oficial</label>
+                                    <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
+                                </div>
                             </div>
                             <div className="rdr-form-group">
-                                <label className="rdr-form-label">Fecha y Hora</label>
+                                <label className="rdr-form-label">Fecha y Hora (1880)</label>
                                 <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
                             </div>
                             <div className="rdr-form-group">
@@ -336,12 +345,18 @@ function Incidents() {
                     <div className="rdr-modal-content" style={{ maxWidth: '600px' }}>
                         <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>PERMISO DE EXPEDICIÓN</h2>
                         <form onSubmit={handleSubmitFieldOp}>
-                            <div className="rdr-form-group">
-                                <label className="rdr-form-label">Nombre de la Operación / Titular</label>
-                                <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
+                            <div style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '1rem' }}>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Nº OP</label>
+                                    <input type="text" className="rdr-input" required value={incidentNumber} onChange={e => setIncidentNumber(e.target.value)} placeholder="001" style={{ width: '80px' }}/>
+                                </div>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Nombre de la Operación / Titular</label>
+                                    <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
+                                </div>
                             </div>
                             <div className="rdr-form-group">
-                                <label className="rdr-form-label">Fecha y Hora</label>
+                                <label className="rdr-form-label">Fecha y Hora (1880)</label>
                                 <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
                             </div>
                             <div className="rdr-form-group">
