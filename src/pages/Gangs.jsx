@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import './GangsRDR.css';
 
@@ -14,6 +14,12 @@ function Gangs() {
     const [editingItemId, setEditingItemId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [expandedImage, setExpandedImage] = useState(null);
+    
+    // Drag to scroll
+    const boardRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
 
     // Form fields
     const [groupName, setGroupName] = useState('');
@@ -195,6 +201,33 @@ function Gangs() {
         } catch (err) { alert(err.message); }
     };
 
+    // --- Drag to Scroll Handlers ---
+    const handleMouseDown = (e) => {
+        if (!boardRef.current) return;
+        setIsDragging(true);
+        setStartX(e.pageX - boardRef.current.offsetLeft);
+        setScrollLeft(boardRef.current.scrollLeft);
+        boardRef.current.style.cursor = 'grabbing';
+    };
+
+    const handleMouseLeave = () => {
+        setIsDragging(false);
+        if (boardRef.current) boardRef.current.style.cursor = 'grab';
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+        if (boardRef.current) boardRef.current.style.cursor = 'grab';
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - boardRef.current.offsetLeft;
+        const walk = (x - startX) * 2; 
+        boardRef.current.scrollLeft = scrollLeft - walk;
+    };
+
     const canManageAll = currentUser && ['Administrador', 'Coordinador', 'Jefatura'].includes(currentUser.rol);
     const canManageBasics = canManageAll; // Expandible a Agentes si es necesario, pero actualmente restringimos a High Command
 
@@ -222,7 +255,15 @@ function Gangs() {
             </div>
 
             {loading ? <div style={{color: '#c0a080', fontFamily: 'Cinzel', textAlign: 'center', marginTop: '3rem'}}>Desplegando la mesa de mapas...</div> : (
-                <div className="rdr-trello-board">
+                <div 
+                    className="rdr-trello-board"
+                    ref={boardRef}
+                    onMouseDown={handleMouseDown}
+                    onMouseLeave={handleMouseLeave}
+                    onMouseUp={handleMouseUp}
+                    onMouseMove={handleMouseMove}
+                    style={{ cursor: 'grab', userSelect: isDragging ? 'none' : 'auto' }}
+                >
                     {filteredGroups.length === 0 ? <p style={{color: '#c0a080', fontStyle: 'italic', margin: 'auto'}}>No hay expedientes en esta bandeja.</p> : filteredGroups.map(g => (
                         <div key={g.id} className="rdr-trello-column">
                             <div className="rdr-col-color-bar" style={{backgroundColor: g.color}}></div>
