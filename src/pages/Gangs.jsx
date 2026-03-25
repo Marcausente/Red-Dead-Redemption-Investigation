@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import './GangsRDR.css';
 
 function Gangs() {
+    const navigate = useNavigate();
     const [groups, setGroups] = useState([]);
     const [allCases, setAllCases] = useState([]);
     const [loading, setLoading] = useState(true);
