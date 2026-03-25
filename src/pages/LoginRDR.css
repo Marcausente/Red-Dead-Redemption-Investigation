@@ -141,10 +141,10 @@
 .rdr-form-input {
     width: 100%;
     padding: 0.8rem 0;
-    background-color: transparent;
+    background-color: transparent !important;
     border: none;
     border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-    color: #f5eedc;
+    color: #f5eedc !important;
     font-family: 'Playfair Display', serif;
     font-size: 1.2rem;
     transition: all 0.3s ease;
@@ -155,14 +155,19 @@
     outline: none;
     border-bottom: 1px solid #d4af37;
     box-shadow: 0 1px 0 0 rgba(212, 175, 55, 0.5);
+    color: #ffffff !important;
 }
 
 .rdr-form-input::placeholder {
-    color: rgba(192, 160, 128, 0.4);
+    color: rgba(192, 160, 128, 0.6) !important;
+    opacity: 1;
 }
 
 /* Auto-fill styling fix for dark backgrounds */
-.rdr-form-input:-webkit-autofill {
+.rdr-form-input:-webkit-autofill,
+.rdr-form-input:-webkit-autofill:hover, 
+.rdr-form-input:-webkit-autofill:focus, 
+.rdr-form-input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 1000px rgba(20, 12, 8, 0.9) inset !important;
     -webkit-text-fill-color: #f5eedc !important;
     transition: background-color 5000s ease-in-out 0s;
