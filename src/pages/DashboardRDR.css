@@ -243,6 +243,16 @@
     max-width: 600px;
     width: 90%;
     box-shadow: 0 0 30px rgba(0,0,0,0.9);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.rdr-modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+.rdr-modal-content::-webkit-scrollbar-thumb {
+    background: #8b5a2b;
+    border-radius: 4px;
 }
 
 .rdr-modal-content h3 {
