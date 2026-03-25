@@ -4,6 +4,7 @@ import './GangsRDR.css';
 
 function Gangs() {
     const [groups, setGroups] = useState([]);
+    const [allCases, setAllCases] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
     const [viewMode, setViewMode] = useState('active'); // 'active' | 'archived'
@@ -39,9 +40,13 @@ function Gangs() {
     const [memNotes, setMemNotes] = useState('');
     const [memPhoto, setMemPhoto] = useState(null);
 
+    const [selectedCaseId, setSelectedCaseId] = useState('');
+    const [caseNotes, setCaseNotes] = useState('');
+
     useEffect(() => {
         loadCurrentUser();
         loadGroups();
+        loadCasesList();
     }, []);
 
     const loadCurrentUser = async () => {
@@ -62,6 +67,11 @@ function Gangs() {
             setGroups(data || []);
         }
         setLoading(false);
+    };
+
+    const loadCasesList = async () => {
+        const { data } = await supabase.rpc('get_cases', { p_status_filter: 'Todos' });
+        if (data) setAllCases(data);
     };
 
     const handleImageUpload = (e, fileSetter) => {
@@ -94,6 +104,7 @@ function Gangs() {
         setCharContent('');
         setCampMapPhoto(null); setCampPhoto(null); setCampStatus('Activo'); setCampNotes('');
         setMemName(''); setMemAlias(''); setMemRole('Sospechoso'); setMemNotes(''); setMemPhoto(null);
+        setSelectedCaseId(''); setCaseNotes('');
     };
 
     const handleEditItem = (type, groupId, item) => {
@@ -180,6 +191,21 @@ function Gangs() {
             } else {
                 await supabase.rpc('add_group_member', { p_group_id: activeGroupId, p_name: memName, p_alias: memAlias, p_role: memRole, p_notes: memNotes, p_photo: memPhoto });
             }
+            closeModal();
+            loadGroups();
+        } catch (err) { alert(err.message); } finally { setSubmitting(false); }
+    };
+
+    const handleAddCase = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        if (!selectedCaseId) {
+            alert("No has seleccionado ningún expediente.");
+            setSubmitting(false);
+            return;
+        }
+        try {
+            await supabase.rpc('add_group_case', { p_group_id: activeGroupId, p_case_id: selectedCaseId, p_notes: caseNotes });
             closeModal();
             loadGroups();
         } catch (err) { alert(err.message); } finally { setSubmitting(false); }
@@ -327,6 +353,28 @@ function Gangs() {
                                             {c.map_photo && <img src={c.map_photo} alt="Map" onClick={() => setExpandedImage(c.map_photo)} title="Ubicación en el Mapa"/>}
                                             {c.camp_photo && <img src={c.camp_photo} alt="Camp" onClick={() => setExpandedImage(c.camp_photo)} title="Fotografía del Campamento"/>}
                                         </div>
+                                    </div>
+                                ))}
+
+                                {/* Expedientes Vinculados */}
+                                <div className="rdr-section-title">
+                                    CASOS RELACIONADOS
+                                    {canManageBasics && <button onClick={() => {setActiveGroupId(g.id); setActiveModal('addCase');}} style={{float:'right', background:'none', border:'none', color:'#8b0000', cursor:'pointer'}}>+</button>}
+                                </div>
+                                {g.cases && g.cases.length === 0 ? <div style={{fontSize:'0.85rem', color:'#8b5a2b', fontStyle:'italic'}}>Sin conexión con expedientes...</div> : g.cases?.map(c => (
+                                    <div key={c.id} className="rdr-trello-card" style={{borderLeftColor: g.color}}>
+                                        {canManageBasics && (
+                                            <div style={{position: 'absolute', right: '5px', top: '5px', display: 'flex', gap: '10px'}}>
+                                                <span style={{cursor:'pointer', fontSize:'0.8rem'}} onClick={() => handleDeleteItem('group_cases', c.id)}>🗑️</span>
+                                            </div>
+                                        )}
+                                        <div style={{fontWeight: 'bold', fontFamily: 'Cinzel', color: '#1a0f0a'}}>
+                                            [#00{c.case_number}] {c.title}
+                                            <span style={{float: 'right', fontSize: '0.7rem', border: '1px solid #d4af37', padding: '1px 3px', marginLeft: '5px'}} className={`status-${c.status?.toLowerCase() || 'abierto'}`}>
+                                                {c.status}
+                                            </span>
+                                        </div>
+                                        {c.notes && <div className="rdr-card-text" style={{marginTop: '5px', fontStyle: 'italic'}}>{c.notes}</div>}
                                     </div>
                                 ))}
 
@@ -499,6 +547,35 @@ function Gangs() {
                             <div style={{display:'flex', gap:'10px', justifyContent:'flex-end', marginTop:'2rem'}}>
                                 <button type="button" className="rdr-btn-brown" style={{background:'transparent'}} onClick={closeModal}>Cancelar</button>
                                 <button type="submit" className="rdr-btn-brown" disabled={submitting}>Encolar Ficha</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {activeModal === 'addCase' && (
+                <div className="rdr-modal-overlay">
+                    <div className="rdr-modal-content" style={{maxWidth: '500px'}}>
+                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>VINCULAR EXPEDIENTE</h2>
+                        <form onSubmit={handleAddCase}>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Seleccionar Expediente (Todos los estados)</label>
+                                <select className="rdr-input" required value={selectedCaseId} onChange={e => setSelectedCaseId(e.target.value)} style={{appearance: 'auto'}}>
+                                    <option value="" disabled style={{background: '#1a0f0a', color: '#d4c5a7'}}>-- Cargar desde Archivo --</option>
+                                    {allCases.map(c => (
+                                        <option key={c.id} value={c.id} style={{background: '#1a0f0a', color: '#d4af37'}}>
+                                            [#00{c.case_number}] {c.title} ({c.status})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Motivo u observaciones (Opcional)</label>
+                                <textarea className="rdr-input" rows="3" value={caseNotes} onChange={e => setCaseNotes(e.target.value)} placeholder="¿Por qué se vincula este suceso con esta organización?" />
+                            </div>
+                            <div style={{display:'flex', gap:'10px', justifyContent:'flex-end', marginTop:'2rem'}}>
+                                <button type="button" className="rdr-btn-brown" style={{background:'transparent'}} onClick={closeModal}>Cancelar</button>
+                                <button type="submit" className="rdr-btn-brown" disabled={submitting}>Oficializar Vínculo</button>
                             </div>
                         </form>
                     </div>

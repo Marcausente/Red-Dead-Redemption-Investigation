@@ -12,6 +12,7 @@ DROP FUNCTION IF EXISTS public.update_group_characteristic(UUID, TEXT);
 DROP FUNCTION IF EXISTS public.update_group_camp(UUID, TEXT, TEXT, TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.update_group_member(UUID, TEXT, TEXT, TEXT, TEXT, TEXT);
 
+DROP TABLE IF EXISTS public.group_cases CASCADE;
 DROP TABLE IF EXISTS public.group_members CASCADE;
 DROP TABLE IF EXISTS public.group_camps CASCADE;
 DROP TABLE IF EXISTS public.group_characteristics CASCADE;
@@ -54,15 +55,25 @@ CREATE TABLE public.group_members (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE public.group_cases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID REFERENCES public.criminal_groups(id) ON DELETE CASCADE,
+    case_id UUID REFERENCES public.cases(id) ON DELETE CASCADE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 ALTER TABLE public.criminal_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_characteristics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_camps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.group_cases ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Lectura grupos_criminales publica" ON public.criminal_groups FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Lectura caracteristicas_grupos publica" ON public.group_characteristics FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Lectura group_camps publica" ON public.group_camps FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Lectura group_members publica" ON public.group_members FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Lectura group_cases publica" ON public.group_cases FOR SELECT TO authenticated USING (true);
 
 -- API DATA
 CREATE OR REPLACE FUNCTION get_groups_data()
@@ -79,6 +90,7 @@ BEGIN
             'is_archived', g.is_archived,
             'characteristics', (SELECT COALESCE(json_agg(row_to_json(c)), '[]') FROM public.group_characteristics c WHERE c.group_id = g.id),
             'camps', (SELECT COALESCE(json_agg(row_to_json(ca)), '[]') FROM public.group_camps ca WHERE ca.group_id = g.id),
+            'cases', (SELECT COALESCE(json_agg(json_build_object('id', gc.id, 'case_id', cc.id, 'case_number', cc.case_number, 'title', cc.title, 'status', cc.status, 'notes', gc.notes)), '[]') FROM public.group_cases gc JOIN public.cases cc ON cc.id = gc.case_id WHERE gc.group_id = g.id),
             'members', (SELECT COALESCE(json_agg(row_to_json(m)), '[]') FROM public.group_members m WHERE m.group_id = g.id)
         )
     ), '[]') INTO result
@@ -118,6 +130,7 @@ BEGIN
     IF p_table = 'group_characteristics' THEN DELETE FROM public.group_characteristics WHERE id = p_id;
     ELSIF p_table = 'group_camps' THEN DELETE FROM public.group_camps WHERE id = p_id;
     ELSIF p_table = 'group_members' THEN DELETE FROM public.group_members WHERE id = p_id;
+    ELSIF p_table = 'group_cases' THEN DELETE FROM public.group_cases WHERE id = p_id;
     END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -136,4 +149,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION update_criminal_group(p_group_id UUID, p_name TEXT, p_color TEXT, p_image TEXT) RETURNS VOID AS $$
 BEGIN UPDATE public.criminal_groups SET name = p_name, color = p_color, influence_zone_image = p_image WHERE id = p_group_id; END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION add_group_case(p_group_id UUID, p_case_id UUID, p_notes TEXT) RETURNS VOID AS $$
+BEGIN INSERT INTO public.group_cases (group_id, case_id, notes) VALUES (p_group_id, p_case_id, p_notes); END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
