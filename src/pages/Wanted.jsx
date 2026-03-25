@@ -12,6 +12,28 @@ function Wanted() {
     const [submitting, setSubmitting] = useState(false);
     const [exportingId, setExportingId] = useState(null);
 
+    // Towns list
+    const towns = ['Saint Denis', 'Rhodes', 'Valentine', 'Annesburg', 'Blackwater', 'Strawberry', 'Armadillo', 'Tumbleweed'];
+
+    // State mapping
+    const getStateName = (t) => {
+        if (!t) return 'Estado de New Hanover';
+        const tn = t.toLowerCase();
+        if (tn === 'tumbleweed' || tn === 'armadillo') return 'Estado de New Austin';
+        if (tn === 'blackwater' || tn === 'strawberry') return 'Estado de West Elizabeth';
+        if (tn === 'valentine' || tn === 'annesburg') return 'Estado de New Hanover';
+        if (tn === 'rhodes' || tn === 'saint denis') return 'Estado de Lemoyne';
+        return 'Estado de New Hanover';
+    };
+
+    // Date helper
+    const getToday1880 = () => {
+        const d = new Date();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `1880-${mm}-${dd}`;
+    };
+
     // Form fields
     const [photo, setPhoto] = useState('');
     const [name, setName] = useState('');
@@ -21,10 +43,7 @@ function Wanted() {
     const [reward, setReward] = useState('');
     const [wantedType, setWantedType] = useState('VIVO O MUERTO');
     const [isDangerous, setIsDangerous] = useState(false);
-    const [publishedAt, setPublishedAt] = useState('1880-01-01');
-
-    // Towns list
-    const towns = ['Saint Denis', 'Rhodes', 'Valentine', 'Annesburg', 'Blackwater', 'Strawberry', 'Armadillo', 'Tumbleweed'];
+    const [publishedAt, setPublishedAt] = useState(getToday1880());
 
     // Refs for export
     const exportRefs = useRef({});
@@ -72,7 +91,7 @@ function Wanted() {
         setPhoto(''); setName(''); setSurname(''); setAlias('');
         setTown('Valentine');
         setReward(''); setWantedType('VIVO O MUERTO'); setIsDangerous(false);
-        setPublishedAt('1880-01-01');
+        setPublishedAt(getToday1880());
     };
 
     const openEdit = (poster) => {
@@ -84,7 +103,7 @@ function Wanted() {
         setReward(poster.reward_amount?.toString() || '');
         setWantedType(poster.wanted_type || 'VIVO O MUERTO');
         setIsDangerous(poster.is_dangerous || false);
-        setPublishedAt(poster.published_at ? poster.published_at.substring(0, 10) : '1880-01-01');
+        setPublishedAt(poster.published_at ? poster.published_at.substring(0, 10) : getToday1880());
         setPhoto(poster.photo || '');
         setShowModal(true);
     };
@@ -169,7 +188,7 @@ function Wanted() {
             {exportingId === poster.id && (
                 <div ref={el => exportRefs.current[poster.id] = el} className="wanted-export-poster">
                     <div className="wep-inner">
-                        <div className="wep-bureau">Bureau of Investigation — Estado de New Hanover</div>
+                        <div className="wep-bureau">Bureau of Investigation — {getStateName(poster.town)}</div>
                         <div className="wep-wanted">WANTED</div>
                         <div className="wep-photo">
                             {poster.photo
@@ -194,6 +213,9 @@ function Wanted() {
             )}
 
             <div className="wanted-card-inner">
+                <div style={{ position: 'absolute', top: '10px', left: '0', width: '100%', textAlign: 'center', fontFamily: 'Cinzel', fontSize: '0.5rem', color: 'rgba(92, 58, 21, 0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Bureau of Investigation — {getStateName(poster.town)}
+                </div>
                 <div className="wanted-label-wanted">WANTED</div>
                 <div className="wanted-photo-container">
                     {poster.photo
