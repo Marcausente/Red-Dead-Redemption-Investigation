@@ -347,8 +347,8 @@ function Gangs() {
                                             {m.photo ? <img src={m.photo} className="rdr-member-avatar" alt="Mugshot" onClick={() => setExpandedImage(m.photo)}/> : <div className="rdr-member-avatar" style={{background:'#d4c5a7', display:'flex', alignItems:'center', justifyContent:'center'}}>?</div>}
                                             <div>
                                                 <div className={`rdr-card-title role-${m.role.toLowerCase()}`} style={{marginBottom: 0, border: 'none'}}>{m.role.toUpperCase()}</div>
-                                                <div style={{fontFamily: 'Playfair Display', fontWeight: 'bold'}}>{m.name}</div>
-                                                {m.alias && <div style={{fontSize: '0.8rem', color: '#8b5a2b'}}>Alias: "{m.alias}"</div>}
+                                                <div style={{fontFamily: 'Playfair Display', fontWeight: 'bold', color: '#1a0f0a', fontSize: '1.1rem'}}>{m.name}</div>
+                                                {m.alias && <div style={{fontSize: '0.85rem', color: '#8b5a2b'}}>Alias: "{m.alias}"</div>}
                                             </div>
                                         </div>
                                         <div className="rdr-card-text">{m.notes}</div>
