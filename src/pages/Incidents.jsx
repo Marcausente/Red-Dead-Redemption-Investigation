@@ -46,7 +46,7 @@ function Incidents() {
         if (groupData) setGroupsList(groupData);
 
         // Load Investigators for Field Ops
-        const { data: userData } = await supabase.from('users').select('id, nombre, apellido, rol');
+        const { data: userData } = await supabase.from('users').select('id, nombre, apellido, rol, rango');
         if (userData) {
             setUsersList(userData.filter(u => ['Administrador', 'Jefatura', 'Coordinador', 'Agente BOI', 'Ayudante BOI'].includes(u.rol)));
         }
@@ -360,7 +360,7 @@ function Incidents() {
                                     {usersList.map(u => (
                                         <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e4d5b7', fontSize: '0.85rem' }}>
                                             <input type="checkbox" checked={selectedAgents.includes(u.id)} onChange={() => handleAgentToggle(u.id)} style={{ accentColor: '#8b5a2b' }} />
-                                            {u.nombre} {u.apellido} <span style={{ color: '#8b5a2b' }}>({u.rol})</span>
+                                            {u.nombre} {u.apellido} <span style={{ color: '#8b5a2b' }}>({u.rango || u.rol})</span>
                                         </label>
                                     ))}
                                 </div>
