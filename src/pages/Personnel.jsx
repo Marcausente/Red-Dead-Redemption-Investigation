@@ -5,6 +5,8 @@ import AvatarEditor from 'react-avatar-editor';
 import { supabase } from '../supabaseClient';
 import { usePresence } from '../contexts/PresenceContext';
 import '../index.css';
+import './DashboardRDR.css'; // For common rdr components like modals and buttons
+import './PersonnelRDR.css';
 
 function Personnel() {
     const navigate = useNavigate();
@@ -32,17 +34,24 @@ function Personnel() {
     const [scale, setScale] = useState(1.2);
     const editorRef = useRef(null);
 
+    // Default 1880 format for Entry Date
+    const get1880Date = () => {
+        const today = new Date();
+        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+        const day = today.getDate().toString().padStart(2, '0');
+        return `1880-${month}-${day}`;
+    };
+
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         nombre: '',
         apellido: '',
         no_placa: '',
-        rango: 'Oficial II',
-        rol: 'Ayudante',
-        fecha_ingreso: '',
-        profile_image: '',
-        divisions: ['Detective Bureau']
+        rango: 'Recluta',
+        rol: 'Externo',
+        fecha_ingreso: get1880Date(),
+        profile_image: ''
     });
 
     const fileInputRef = useRef(null);
@@ -81,26 +90,30 @@ function Personnel() {
         }
     };
 
-    // Rank Priorities
-    const rankPriority = {
-        'Capitan': 100,
-        'Teniente': 90,
-        'Internal Affairs Agent': 85, // High priority sort
-        'Department of Justice Agent': 85, // Same level as IA Agent
-        'Detective III': 80,
-        'Detective II': 70,
-        'Detective I': 60,
-        'Oficial III+': 50,
-        'Oficial III': 40,
-        'Oficial II': 30
+    // Strict BOI Rank Priorities
+    const RANK_ORDER = [
+        'Marshal', 
+        'Sheriff de Condado', 
+        'Sheriff de Pueblo', 
+        'Ayudante del Sheriff', 
+        'Oficial Supervisor', 
+        'Oficial', 
+        'Aguacil de Primera', 
+        'Aguacil de Segunda', 
+        'Recluta'
+    ];
+
+    const getRankPriority = (rank) => {
+        const idx = RANK_ORDER.indexOf(rank);
+        return idx !== -1 ? idx : 999; // Lower index is HIGHER rank.
     };
+    
+    // Sort array so lowest index (Marshal) is first.
+    const sortUsers = (a, b) => getRankPriority(a.rango) - getRankPriority(b.rango);
 
-    const getRankPriority = (rank) => rankPriority[rank] || 0;
-    const sortUsers = (a, b) => getRankPriority(b.rango) - getRankPriority(a.rango);
-
-    const detectives = users.filter(u => ['Detective I', 'Detective II', 'Detective III'].includes(u.rango)).sort(sortUsers);
-    const helpers = users.filter(u => ['Oficial II', 'Oficial III', 'Oficial III+'].includes(u.rango)).sort(sortUsers);
-    const commandAndExternal = users.filter(u => ['Capitan', 'Teniente', 'Internal Affairs Agent', 'Department of Justice Agent'].includes(u.rango)).sort(sortUsers);
+    // Filter Logic
+    const investigadores = users.filter(u => ['Coordinador', 'Agente BOI', 'Ayudante BOI', 'Administrador'].includes(u.rol)).sort(sortUsers);
+    const jefaturaExternos = users.filter(u => ['Externo', 'Jefatura'].includes(u.rol)).sort(sortUsers);
 
     // --- Actions ---
 
@@ -120,7 +133,8 @@ function Personnel() {
     const handleSaveCroppedImage = () => {
         if (editorRef.current) {
             const canvas = editorRef.current.getImageScaledToCanvas();
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Compressed to 0.6 for BBDD space
+            // Extreme optimization for BBDD (WEBP at 0.6)
+            const dataUrl = canvas.toDataURL('image/webp', 0.6); 
             setFormData({ ...formData, profile_image: dataUrl });
             setEditorOpen(false);
             setImageSrc(null);
@@ -139,8 +153,7 @@ function Personnel() {
         setEditingUserId(null);
         setFormData({
             email: '', password: '', nombre: '', apellido: '', no_placa: '',
-            rango: 'Oficial II', rol: 'Ayudante', fecha_ingreso: '', profile_image: '',
-            divisions: ['Detective Bureau']
+            rango: 'Recluta', rol: 'Externo', fecha_ingreso: get1880Date(), profile_image: ''
         });
         setMessage(null);
         setShowModal(true);
@@ -149,30 +162,34 @@ function Personnel() {
     const openEditModal = (user) => {
         setModalMode('edit');
         setEditingUserId(user.id);
+        
+        let formattedDate = get1880Date();
+        if (user.fecha_ingreso) {
+            formattedDate = user.fecha_ingreso.split('T')[0];
+        }
+
         setFormData({
             email: user.email,
-            password: '', // Don't prefill password
+            password: '', 
             nombre: user.nombre,
             apellido: user.apellido,
             no_placa: user.no_placa || '',
-            rango: user.rango || 'Oficial II',
-            rol: user.rol || 'Ayudante',
-            fecha_ingreso: user.fecha_ingreso ? user.fecha_ingreso.split('T')[0] : '',
-            profile_image: user.profile_image || '',
-            divisions: user.divisions || ['Detective Bureau']
+            rango: user.rango || 'Recluta',
+            rol: user.rol || 'Externo',
+            fecha_ingreso: formattedDate,
+            profile_image: user.profile_image || ''
         });
         setMessage(null);
         setShowModal(true);
     };
 
     const handleDeleteUser = async (userId) => {
-        if (!window.confirm("Are you sure you want to delete this user? This cannot be undone.")) return;
+        if (!window.confirm("¿Seguro que deseas eliminar el registro de este agente?")) return;
 
         try {
             const { error } = await supabase.rpc('delete_personnel', { target_user_id: userId });
             if (error) throw error;
 
-            // Optimistic UI update or Refetch
             setUsers(users.filter(u => u.id !== userId));
         } catch (err) {
             alert('Error deleting user: ' + err.message);
@@ -186,17 +203,9 @@ function Personnel() {
 
         try {
             if (modalMode === 'create') {
-                console.log("Creating User Payload:", {
-                    email: formData.email,
-                    password: formData.password,
-                    nombre: formData.nombre,
-                    apellido: formData.apellido,
-                    rango: formData.rango,
-                    rol: formData.rol
-                });
                 const { error } = await supabase.rpc('create_new_personnel', {
                     p_email: formData.email,
-                    p_password: formData.password, // Required for create
+                    p_password: formData.password, 
                     p_nombre: formData.nombre,
                     p_apellido: formData.apellido,
                     p_no_placa: formData.no_placa,
@@ -205,16 +214,33 @@ function Personnel() {
                     p_fecha_ingreso: formData.fecha_ingreso || null,
                     p_fecha_ultimo_ascenso: null,
                     p_profile_image: formData.profile_image || null,
-                    p_divisions: formData.divisions
+                    p_divisions: [] // Dummy mapping for legacy backwards compat in RPC just in case, though removed from DB schema
                 });
-                if (error) throw error;
-                setMessage({ type: 'success', text: 'Personnel added successfully!' });
+                if (error) {
+                    // Si falla porque el script ignora p_divisions intentemos sin él
+                    if (error.message.includes('No function matches')) {
+                        const { error: err2 } = await supabase.rpc('create_new_personnel', {
+                            p_email: formData.email,
+                            p_password: formData.password, 
+                            p_nombre: formData.nombre,
+                            p_apellido: formData.apellido,
+                            p_rango: formData.rango,
+                            p_rol: formData.rol,
+                            p_fecha_ingreso: formData.fecha_ingreso || null,
+                            p_profile_image: formData.profile_image || null
+                        });
+                        if(err2) throw err2;
+                    } else {
+                        throw error;
+                    }
+                }
+                setMessage({ type: 'success', text: 'Agente alistado exitosamente.' });
             } else {
                 // Update
                 const { error } = await supabase.rpc('update_personnel_admin', {
                     p_user_id: editingUserId,
                     p_email: formData.email,
-                    p_password: formData.password || null, // Optional for update
+                    p_password: formData.password || null, 
                     p_nombre: formData.nombre,
                     p_apellido: formData.apellido,
                     p_no_placa: formData.no_placa,
@@ -223,10 +249,27 @@ function Personnel() {
                     p_fecha_ingreso: formData.fecha_ingreso || null,
                     p_fecha_ultimo_ascenso: null,
                     p_profile_image: formData.profile_image || null,
-                    p_divisions: formData.divisions
+                    p_divisions: [] // Dummy
                 });
-                if (error) throw error;
-                setMessage({ type: 'success', text: 'Personnel updated successfully!' });
+                if (error) {
+                    if (error.message.includes('No function matches')) {
+                        const { error: err2 } = await supabase.rpc('update_personnel_admin', {
+                            p_user_id: editingUserId,
+                            p_email: formData.email,
+                            p_password: formData.password || null, 
+                            p_nombre: formData.nombre,
+                            p_apellido: formData.apellido,
+                            p_rango: formData.rango,
+                            p_rol: formData.rol,
+                            p_fecha_ingreso: formData.fecha_ingreso || null,
+                            p_profile_image: formData.profile_image || null
+                        });
+                        if(err2) throw err2;
+                    } else {
+                        throw error;
+                    }
+                }
+                setMessage({ type: 'success', text: 'Expediente actualizado.' });
             }
 
             setTimeout(() => {
@@ -242,120 +285,87 @@ function Personnel() {
         }
     };
 
-    const canManagePersonnel = ['Comisionado', 'Coordinador', 'Administrador'].includes(currentUserRole);
+    const canManagePersonnel = ['Administrador', 'Jefatura', 'Coordinador'].includes(currentUserRole);
 
     const UserCard = ({ user }) => {
         const isOnline = onlineUsers.has(user.id);
 
         return (
-            <div className="personnel-card" onClick={() => navigate(`/personnel/${user.id}`)} style={{ cursor: 'pointer', position: 'relative' }}>
-                {/* Admin Controls */}
-                {canManagePersonnel && (
-                    <div className="personnel-card-actions" onClick={(e) => e.stopPropagation()}>
-                        <button
-                            className="card-action-btn edit-btn"
-                            title="Edit"
-                            onClick={() => openEditModal(user)}
-                        >
-                            ✏️
-                        </button>
-                        <button
-                            className="card-action-btn delete-btn"
-                            title="Delete"
-                            onClick={() => handleDeleteUser(user.id)}
-                        >
-                            🗑️
-                        </button>
+            <div className="rdr-agent-card" onClick={() => navigate(`/personnel/${user.id}`)}>
+                <div style={{position: 'relative'}}>
+                    <div className="rdr-agent-image-container">
+                        {user.profile_image ? (
+                            <img src={user.profile_image} alt={`${user.nombre} `} className="rdr-agent-image" />
+                        ) : (
+                            <div className="rdr-agent-no-image">{user.nombre ? user.nombre.charAt(0) : 'X'}</div>
+                        )}
                     </div>
-                )}
-
-                <div className="personnel-image-container">
-                    {user.profile_image ? (
-                        <img src={user.profile_image} alt={`${user.nombre} ${user.apellido} `} className="personnel-image" />
-                    ) : (
-                        <img src="/anon.png" alt="Anon" className="personnel-image" />
+                    {isOnline && (
+                        <div className="rdr-online-dot" title="En servicio activo"></div>
                     )}
                 </div>
-                <div className="personnel-info">
-                    <div className="personnel-rank">{user.rango}</div>
-                    <div className="personnel-name">{user.nombre} {user.apellido}</div>
-                    <div className="personnel-badge">#{user.no_placa || '---'}</div>
+
+                <div className="rdr-agent-info">
+                    <div className="rdr-agent-rank">{user.rango}</div>
+                    <div className="rdr-agent-name">{user.nombre} {user.apellido}</div>
                 </div>
 
-                {isOnline && (
-                    <div style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '10px',
-                        width: '12px',
-                        height: '12px',
-                        backgroundColor: '#4ade80',
-                        borderRadius: '50%',
-                        border: '2px solid rgba(15, 23, 42, 1)',
-                        boxShadow: '0 0 8px #4ade80',
-                        zIndex: 5
-                    }} title="Online" />
+                {canManagePersonnel && (
+                    <div className="rdr-agent-actions" onClick={(e) => e.stopPropagation()}>
+                        <button title="Editar" onClick={() => openEditModal(user)}>✏️</button>
+                        <button title="Eliminar" onClick={() => handleDeleteUser(user.id)}>🗑️</button>
+                    </div>
                 )}
             </div>
         );
     };
 
-    if (loading && users.length === 0) return <div className="loading-container">Loading Personnel...</div>;
+    if (loading && users.length === 0) return <div style={{textAlign: 'center', marginTop: '5rem', color: '#c0a080', fontSize: '1.2rem', fontFamily: 'Cinzel'}}>Revisando archivos de personal...</div>;
 
     return (
-        <div className="personnel-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 className="page-title" style={{ margin: 0 }}>Bureau Personnel</h2>
+        <div className="rdr-personnel-container">
+            <div className="rdr-personnel-header">
+                <h2 className="rdr-board-title" style={{ margin: 0, fontSize: '2.5rem' }}>PERSONAL DEL BUREAU</h2>
                 {canManagePersonnel && (
-                    <button
-                        className="login-button"
-                        style={{ width: 'auto', padding: '0.5rem 1.5rem' }}
-                        onClick={openCreateModal}
-                    >
-                        + Add Personnel
+                    <button className="rdr-btn-brown" onClick={openCreateModal}>
+                        + RECLUTAR AGENTE
                     </button>
                 )}
             </div>
 
-            {error && <div className="error-message">Error: {error}</div>}
+            {error && <div style={{color: '#ff4444', textAlign: 'center', marginBottom: '2rem'}}>{error}</div>}
 
-            <div className="personnel-grid">
-                {/* Detectives Column */}
-                <div className="personnel-column">
-                    <h3 className="column-title">Detectives</h3>
-                    <div className="personnel-list">
-                        {detectives.length > 0 ? detectives.map(u => <UserCard key={u.id} user={u} />) : <div className="empty-list">No detectives found</div>}
+            <div className="rdr-personnel-layout">
+                
+                {/* Column 1: Investigadores */}
+                <div className="rdr-personnel-section">
+                    <h3 className="rdr-column-title">INVESTIGADORES</h3>
+                    <div className="rdr-agents-list">
+                        {investigadores.length > 0 ? investigadores.map(u => <UserCard key={u.id} user={u} />) : <div style={{color: '#8b5a2b', fontStyle: 'italic'}}>Sin registros...</div>}
                     </div>
                 </div>
 
-                {/* Helpers Column */}
-                <div className="personnel-column">
-                    <h3 className="column-title">Ayudantes DB</h3>
-                    <div className="personnel-list">
-                        {helpers.length > 0 ? helpers.map(u => <UserCard key={u.id} user={u} />) : <div className="empty-list">No oficiales found</div>}
+                {/* Column 2: Jefatura y Externos */}
+                <div className="rdr-personnel-section">
+                    <h3 className="rdr-column-title">JEFATURA Y EXTERNOS</h3>
+                    <div className="rdr-agents-list">
+                        {jefaturaExternos.length > 0 ? jefaturaExternos.map(u => <UserCard key={u.id} user={u} />) : <div style={{color: '#8b5a2b', fontStyle: 'italic'}}>Sin registros...</div>}
                     </div>
                 </div>
 
-                {/* Command Column */}
-                <div className="personnel-column">
-                    <h3 className="column-title">Comisionado y Externos</h3>
-                    <div className="personnel-list">
-                        {commandAndExternal.length > 0 ? commandAndExternal.map(u => <UserCard key={u.id} user={u} />) : <div className="empty-list">No command staff found</div>}
-                    </div>
-                </div>
             </div>
 
             {/* Add/Edit Modal */}
             {showModal && (
-                <div className="cropper-modal-overlay">
-                    <div className="cropper-modal-content" style={{ maxWidth: '600px', textAlign: 'left' }}>
-                        <h3 style={{ marginBottom: '1.5rem', color: 'var(--text-primary)', textAlign: 'center' }}>
-                            {modalMode === 'create' ? 'Add New Personnel' : 'Edit Personnel'}
+                <div className="rdr-modal-overlay">
+                    <div className="rdr-modal-content" style={{ maxWidth: '700px' }}>
+                        <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                            {modalMode === 'create' ? 'NUEVO EXPEDIENTE DE AGENTE' : 'MODIFICAR EXPEDIENTE'}
                         </h3>
 
                         {message && (
                             <div style={{
-                                padding: '1rem', marginBottom: '1rem', borderRadius: '8px',
+                                padding: '1rem', marginBottom: '1rem', borderRadius: '4px', textAlign: 'center',
                                 backgroundColor: message.type === 'success' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                                 color: message.type === 'success' ? '#4ade80' : '#ef4444',
                                 border: `1px solid ${message.type === 'success' ? '#4ade80' : '#ef4444'} `
@@ -364,128 +374,73 @@ function Personnel() {
                             </div>
                         )}
 
-                        <form onSubmit={handleFormSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label className="form-label">Email</label>
-                                <input required type="email" name="email" className="form-input" value={formData.email} onChange={handleInputChange} />
+                        <form onSubmit={handleFormSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', textAlign: 'left' }}>
+                            <div>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Correo Telegráfico (Email)</label>
+                                <input required type="email" name="email" className="rdr-input" value={formData.email} onChange={handleInputChange} />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Password {modalMode === 'edit' && '(Optional)'}</label>
+                            <div>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Contraseña {modalMode === 'edit' && '(Opcional)'}</label>
                                 <input
                                     type="password"
                                     name="password"
-                                    className="form-input"
+                                    className="rdr-input"
                                     value={formData.password}
                                     onChange={handleInputChange}
                                     required={modalMode === 'create'}
-                                    placeholder={modalMode === 'edit' ? "Leave blank to keep current" : ""}
+                                    placeholder={modalMode === 'edit' ? "Dejar en blanco para mantener" : ""}
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">First Name</label>
-                                <input required type="text" name="nombre" className="form-input" value={formData.nombre} onChange={handleInputChange} />
+                            <div>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Nombre</label>
+                                <input required type="text" name="nombre" className="rdr-input" value={formData.nombre} onChange={handleInputChange} />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Last Name</label>
-                                <input required type="text" name="apellido" className="form-input" value={formData.apellido} onChange={handleInputChange} />
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Badge Number</label>
-                                <input required type="text" name="no_placa" className="form-input" value={formData.no_placa} onChange={handleInputChange} />
+                            <div>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Apellido</label>
+                                <input required type="text" name="apellido" className="rdr-input" value={formData.apellido} onChange={handleInputChange} />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Profile Image (Optional)</label>
-                                <label className="custom-file-upload">
-                                    <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
-                                    {formData.profile_image ? "Image Selected (Click to change)" : "Choose Image"}
+
+
+                            <div>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Rango de Oficial</label>
+                                <select name="rango" className="rdr-input" style={{appearance: 'auto'}} value={formData.rango} onChange={handleInputChange}>
+                                    {RANK_ORDER.map(rank => (
+                                        <option key={rank} value={rank} style={{background: '#1a0f0a', color: '#d4af37'}}>{rank}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Rol del Sistema</label>
+                                <select name="rol" className="rdr-input" style={{appearance: 'auto'}} value={formData.rol} onChange={handleInputChange}>
+                                    <option value="Externo" style={{background: '#1a0f0a', color: '#d4af37'}}>Externo</option>
+                                    <option value="Ayudante BOI" style={{background: '#1a0f0a', color: '#d4af37'}}>Ayudante BOI</option>
+                                    <option value="Agente BOI" style={{background: '#1a0f0a', color: '#d4af37'}}>Agente BOI</option>
+                                    <option value="Coordinador" style={{background: '#1a0f0a', color: '#d4af37'}}>Coordinador</option>
+                                    <option value="Jefatura" style={{background: '#1a0f0a', color: '#d4af37'}}>Jefatura</option>
+                                    <option value="Administrador" style={{background: '#1a0f0a', color: '#d4af37'}}>Administrador</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase'}}>Fecha de Ingreso</label>
+                                <input required type="date" name="fecha_ingreso" className="rdr-input" value={formData.fecha_ingreso} onChange={handleInputChange} style={{colorScheme: 'dark'}} />
+                            </div>
+
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label style={{color: '#c0a080', fontSize: '0.9rem', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem'}}>Fotografía del Agente (Opcional)</label>
+                                <label className="rdr-btn-brown" style={{display: 'inline-block', width: '100%', textAlign: 'center'}}>
+                                    <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} style={{display: 'none'}} />
+                                    {formData.profile_image ? "IMAGEN DETECTADA (CLICK PARA CAMBIAR)" : "ADJUNTAR FOTOGRAFÍA"}
                                 </label>
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Rank</label>
-                                <select name="rango" className="form-input custom-select" value={formData.rango} onChange={handleInputChange}>
-                                    <option value="Oficial II">Oficial II</option>
-                                    <option value="Oficial III">Oficial III</option>
-                                    <option value="Oficial III+">Oficial III+</option>
-                                    <option value="Detective I">Detective I</option>
-                                    <option value="Detective II">Detective II</option>
-                                    <option value="Detective III">Detective III</option>
-                                    <option value="Internal Affairs Agent">Internal Affairs Agent</option>
-                                    <option value="Department of Justice Agent">Department of Justice Agent</option>
-                                    <option value="Teniente">Teniente</option>
-                                    <option value="Capitan">Capitan</option>
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Role</label>
-                                <select name="rol" className="form-input custom-select" value={formData.rol} onChange={handleInputChange}>
-                                    <option value="Externo">Externo</option>
-                                    <option value="Ayudante">Ayudante</option>
-                                    <option value="Detective">Detective</option>
-                                    <option value="Coordinador">Coordinador</option>
-                                    <option value="Comisionado">Comisionado</option>
-                                    <option value="Administrador">Administrador</option>
-                                </select>
-                            </div>
-
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label className="form-label">Divisions</label>
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.divisions.includes('Detective Bureau')}
-                                            onChange={(e) => {
-                                                const newDivisions = e.target.checked
-                                                    ? [...formData.divisions, 'Detective Bureau']
-                                                    : formData.divisions.filter(d => d !== 'Detective Bureau');
-                                                setFormData({ ...formData, divisions: newDivisions });
-                                            }}
-                                        />
-                                        Detective Bureau
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.divisions.includes('Internal Affairs')}
-                                            onChange={(e) => {
-                                                const newDivisions = e.target.checked
-                                                    ? [...formData.divisions, 'Internal Affairs']
-                                                    : formData.divisions.filter(d => d !== 'Internal Affairs');
-                                                setFormData({ ...formData, divisions: newDivisions });
-                                            }}
-                                        />
-                                        Internal Affairs
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.divisions.includes('DOJ')}
-                                            onChange={(e) => {
-                                                const newDivisions = e.target.checked
-                                                    ? [...formData.divisions, 'DOJ']
-                                                    : formData.divisions.filter(d => d !== 'DOJ');
-                                                setFormData({ ...formData, divisions: newDivisions });
-                                            }}
-                                        />
-                                        Department of Justice
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                <label className="form-label">Bureau Entry Date</label>
-                                <input required type="date" name="fecha_ingreso" className="form-input" value={formData.fecha_ingreso} onChange={handleInputChange} />
-                            </div>
-
-                            <div className="cropper-actions" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
-                                <button type="button" className="login-button btn-secondary" onClick={() => setShowModal(false)} disabled={processing}>Cancel</button>
-                                <button type="submit" className="login-button" disabled={processing}>
-                                    {processing ? 'Saving...' : (modalMode === 'create' ? 'Create Personnel' : 'Update Personnel')}
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                                <button type="button" className="rdr-btn-brown" style={{background: 'transparent', borderColor: '#c0a080', color: '#c0a080'}} onClick={() => setShowModal(false)} disabled={processing}>Cancelar</button>
+                                <button type="submit" className="rdr-btn-brown" disabled={processing}>
+                                    {processing ? 'Sellando...' : (modalMode === 'create' ? 'Registrar Expediente' : 'Actualizar Expediente')}
                                 </button>
                             </div>
                         </form>
@@ -495,34 +450,33 @@ function Personnel() {
 
             {/* Cropper Modal */}
             {editorOpen && createPortal(
-                <div className="cropper-modal-overlay">
-                    <div className="cropper-modal-content">
-                        <h3>Adjust Profile Picture</h3>
-                        <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+                <div className="rdr-modal-overlay" style={{zIndex: 4000}}>
+                    <div className="rdr-modal-content">
+                        <h3 style={{textAlign: 'center', marginBottom: '1.5rem'}}>RECORTAR FOTOGRAFÍA</h3>
+                        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
                             <AvatarEditor
                                 ref={editorRef}
                                 image={imageSrc}
-                                width={250}
-                                height={250}
-                                border={20}
-                                borderRadius={125}
-                                color={[0, 0, 0, 0.6]}
+                                width={150}
+                                height={150}
+                                border={[20, 20]}
+                                color={[26, 15, 10, 0.8]} 
                                 scale={scale}
                             />
                         </div>
-                        <div className="cropper-controls">
-                            <div className="zoom-slider-container">
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#d4af37' }}>
                                 <span>-</span>
                                 <input
                                     type="range" min="1" max="3" step="0.01" value={scale}
-                                    className="zoom-slider"
+                                    style={{accentColor: '#8b5a2b', width: '200px'}}
                                     onChange={(e) => setScale(parseFloat(e.target.value))}
                                 />
                                 <span>+</span>
                             </div>
-                            <div className="cropper-actions">
-                                <button type="button" className="login-button btn-secondary" onClick={handleCancelCrop}>Cancel</button>
-                                <button type="button" className="login-button" onClick={handleSaveCroppedImage}>Save Image</button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button type="button" className="rdr-btn-brown" style={{background: 'transparent', borderColor: '#c0a080', color: '#c0a080'}} onClick={handleCancelCrop}>Cancelar</button>
+                                <button type="button" className="rdr-btn-brown" onClick={handleSaveCroppedImage}>Fijar Foto WebP</button>
                             </div>
                         </div>
                     </div>
