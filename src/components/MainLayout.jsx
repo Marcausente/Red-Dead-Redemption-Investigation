@@ -65,6 +65,7 @@ function MainLayout() {
         { name: 'Casos', path: '/cases' },
         { name: 'Grupos Criminales', path: '/gangs' },
         { name: 'Incidentes', path: '/incidents' },
+        { name: 'Carteles', path: '/wanted' },
         { name: 'Mapa del Estado', path: '/crimemap' },
         { name: 'Personal', path: '/personnel' }
     ];
