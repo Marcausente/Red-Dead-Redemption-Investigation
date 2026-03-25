@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import AvatarEditor from 'react-avatar-editor';
 import { supabase } from '../supabaseClient';
 import '../index.css';
+import './DashboardRDR.css';
+import './ProfileRDR.css';
 
 function Profile() {
     const [loading, setLoading] = useState(true);
@@ -19,7 +21,6 @@ function Profile() {
     const [formData, setFormData] = useState({
         nombre: '',
         apellido: '',
-        no_placa: '',
         rango: '',
         rol: '',
         profile_image: ''
@@ -42,7 +43,7 @@ function Profile() {
             setLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
 
-            if (!user) throw new Error('No user found');
+            if (!user) throw new Error('Usuario encriptado no encontrado');
 
             const { data, error } = await supabase
                 .from('users')
@@ -56,7 +57,6 @@ function Profile() {
                 setFormData({
                     nombre: data.nombre || '',
                     apellido: data.apellido || '',
-                    no_placa: data.no_placa || '',
                     rango: data.rango || '',
                     rol: data.rol || 'Externo',
                     profile_image: data.profile_image || ''
@@ -100,13 +100,11 @@ function Profile() {
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (file) {
-            // Check file size (optional check before compression)
-            if (file.size > 10000000) { // 10MB limit check
-                alert("File is very large, please choose a smaller one or wait for processing.");
+            if (file.size > 10000000) { 
+                alert("La fotografía es demasiado pesada, elige una más pequeña.");
             }
             setImageSrc(file);
             setEditorOpen(true);
-            // Reset input so same file can be selected again if needed
             event.target.value = '';
         }
     };
@@ -115,12 +113,8 @@ function Profile() {
         if (editorRef.current) {
             const canvas = editorRef.current.getImageScaledToCanvas();
 
-            // Create a temporary canvas to resize if needed (though AvatarEditor handles sizing, we double ensure max dimensions)
-            // But usually getImageScaledToCanvas respects the width/height props.
-            // We want high quality output.
-
-            // Convert to Base64 JPEG 0.6 quality (Compressed for DB space)
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            // WebP Compression
+            const dataUrl = canvas.toDataURL('image/webp', 0.6);
             setFormData({ ...formData, profile_image: dataUrl });
             setEditorOpen(false);
             setImageSrc(null);
@@ -141,7 +135,7 @@ function Profile() {
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('No user found');
+            if (!user) throw new Error('Usuario desaparecido');
 
             // Update Profile Data
             const { error: profileError } = await supabase
@@ -149,7 +143,6 @@ function Profile() {
                 .update({
                     nombre: formData.nombre,
                     apellido: formData.apellido,
-                    no_placa: formData.no_placa,
                     rango: formData.rango,
                     profile_image: formData.profile_image,
                     updated_at: new Date()
@@ -161,7 +154,7 @@ function Profile() {
             // Update Password if provided
             if (passwords.newPassword) {
                 if (passwords.newPassword !== passwords.confirmPassword) {
-                    throw new Error("Passwords do not match");
+                    throw new Error("Las constraseñas no coinciden en el telégrafo.");
                 }
                 const { error: passwordError } = await supabase.auth.updateUser({
                     password: passwords.newPassword
@@ -169,8 +162,7 @@ function Profile() {
                 if (passwordError) throw passwordError;
             }
 
-            setMessage({ type: 'success', text: 'Profile updated successfully!' });
-            // Reset password fields
+            setMessage({ type: 'success', text: 'Expediente actualizado exitosamente.' });
             setPasswords({ newPassword: '', confirmPassword: '' });
 
         } catch (error) {
@@ -180,11 +172,10 @@ function Profile() {
         }
     };
 
-    if (loading) return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading profile...</div>;
+    if (loading) return <div style={{ textAlign: 'center', marginTop: '50px', fontFamily: 'Cinzel', color: '#c0a080', fontSize: '1.2rem' }}>Revisando el archivador...</div>;
 
     // Permissions
-    const canEditRank = ['Coordinador', 'Comisionado', 'Administrador'].includes(formData.rol);
-    const isAdmin = formData.rol === 'Administrador';
+    const canEditRank = ['Coordinador', 'Administrador', 'Jefatura'].includes(formData.rol);
 
     // Storage formatting
     const formatBytes = (bytes, decimals = 2) => {
@@ -202,157 +193,123 @@ function Profile() {
     const usagePercent = Math.min(100, Math.max(0, (usedBytes / MAX_STORAGE_BYTES) * 100));
 
     return (
-        <div className="profile-container">
-            <h2 style={{ marginBottom: '2rem' }}>Edit User Profile</h2>
+        <div className="rdr-profile-container">
+            <h2 className="rdr-profile-title">MI EXPEDIENTE</h2>
 
             {message && (
                 <div style={{
                     padding: '1rem',
                     marginBottom: '1rem',
-                    backgroundColor: message.type === 'success' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 0, 0, 0.1)',
+                    backgroundColor: message.type === 'success' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                     border: `1px solid ${message.type === 'success' ? '#4ade80' : '#ef4444'}`,
-                    borderRadius: '8px',
-                    color: message.type === 'success' ? '#4ade80' : '#ef4444'
+                    borderRadius: '4px',
+                    color: message.type === 'success' ? '#4ade80' : '#ef4444',
+                    textAlign: 'center'
                 }}>
                     {message.text}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="profile-layout">
+            <form onSubmit={handleSubmit} className="rdr-profile-layout">
                 {/* Left Column: Form */}
-                <div className="profile-form-section">
-                    <h3>Personal Information</h3>
-                    <div className="form-group">
-                        <label className="form-label">First Name</label>
+                <div className="rdr-profile-form-section">
+                    <h3 className="rdr-profile-h3">DATOS DEL AGENTE</h3>
+                    
+                    <div className="rdr-form-group">
+                        <label className="rdr-form-label">Nombre</label>
                         <input
                             type="text"
-                            className="form-input"
+                            className="rdr-form-input"
                             name="nombre"
                             value={formData.nombre}
                             onChange={handleChange}
+                            required
                         />
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Last Name</label>
+                    <div className="rdr-form-group">
+                        <label className="rdr-form-label">Apellido</label>
                         <input
                             type="text"
-                            className="form-input"
+                            className="rdr-form-input"
                             name="apellido"
                             value={formData.apellido}
                             onChange={handleChange}
+                            required
                         />
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Badge Number</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            name="no_placa"
-                            value={formData.no_placa}
-                            onChange={handleChange}
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label className="form-label">Rank {canEditRank ? '(Editable)' : '(Locked)'}</label>
+                    <div className="rdr-form-group">
+                        <label className="rdr-form-label">Rango Jerárquico {canEditRank ? '(Modificable por Alta Estructura)' : '(Bloqueado)'}</label>
                         {canEditRank ? (
                             <select
-                                className="form-input"
+                                className="rdr-form-input"
+                                style={{appearance: 'auto'}}
                                 name="rango"
                                 value={formData.rango}
                                 onChange={handleChange}
                             >
-                                <option value="">Select Rank</option>
-                                <option value="Oficial II">Oficial II</option>
-                                <option value="Oficial III">Oficial III</option>
-                                <option value="Oficial III+">Oficial III+</option>
-                                <option value="Detective I">Detective I</option>
-                                <option value="Detective II">Detective II</option>
-                                <option value="Detective III">Detective III</option>
+                                <option value="Marshal">Marshal</option>
+                                <option value="Sheriff de Condado">Sheriff de Condado</option>
+                                <option value="Sheriff de Pueblo">Sheriff de Pueblo</option>
+                                <option value="Ayudante del Sheriff">Ayudante del Sheriff</option>
+                                <option value="Oficial Supervisor">Oficial Supervisor</option>
+                                <option value="Oficial">Oficial</option>
+                                <option value="Aguacil de Primera">Aguacil de Primera</option>
+                                <option value="Aguacil de Segunda">Aguacil de Segunda</option>
+                                <option value="Recluta">Recluta</option>
                             </select>
                         ) : (
                             <input
                                 type="text"
-                                className="form-input"
+                                className="rdr-form-input"
                                 value={formData.rango}
                                 disabled
-                                style={{ opacity: 0.7, cursor: 'not-allowed' }}
                             />
                         )}
                     </div>
 
-                    <div className="section-divider"></div>
+                    <div className="rdr-profile-divider"></div>
 
-                    <h3>Security</h3>
-                    <div className="form-group">
-                        <label className="form-label">New Password</label>
+                    <h3 className="rdr-profile-h3">SEGURIDAD (TELÉGRAFO)</h3>
+                    
+                    <div className="rdr-form-group">
+                        <label className="rdr-form-label">Nueva Contraseña</label>
                         <input
                             type="password"
-                            className="form-input"
+                            className="rdr-form-input"
                             name="newPassword"
                             value={passwords.newPassword}
                             onChange={handlePasswordChange}
-                            placeholder="Leave blank to keep current"
+                            placeholder="Dejar en blanco para mantener"
                         />
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Confirm New Password</label>
+                    <div className="rdr-form-group">
+                        <label className="rdr-form-label">Confirmar Contraseña</label>
                         <input
                             type="password"
-                            className="form-input"
+                            className="rdr-form-input"
                             name="confirmPassword"
                             value={passwords.confirmPassword}
                             onChange={handlePasswordChange}
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        className="login-button"
-                        disabled={updating}
-                        style={{ marginTop: '1rem' }}
-                    >
-                        {updating ? 'Saving...' : 'Save Changes'}
-                    </button>
-
-                    {/* Database Usage Statistic (Admin Only) */}
-                    {isAdmin && dbUsage && (
-                        <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-                            <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                                Database Storage (Admin View)
-                            </h4>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.3rem', color: 'var(--text-primary)' }}>
-                                <span>Used: {formatBytes(usedBytes)}</span>
-                                <span>Limit: 500 MB</span>
-                            </div>
-
-                            <div style={{
-                                width: '100%',
-                                height: '8px',
-                                backgroundColor: 'rgba(255,255,255,0.1)',
-                                borderRadius: '4px',
-                                overflow: 'hidden'
-                            }}>
-                                <div style={{
-                                    width: `${usagePercent}%`,
-                                    height: '100%',
-                                    backgroundColor: usagePercent > 80 ? '#ef4444' : (usagePercent > 50 ? '#f59e0b' : '#3b82f6'),
-                                    transition: 'width 0.5s ease'
-                                }} />
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.3rem', textAlign: 'right' }}>
-                                {usagePercent.toFixed(1)}% used
-                            </div>
-                        </div>
-                    )}
+                    <div style={{textAlign: 'right', marginTop: '2rem'}}>
+                        <button
+                            type="submit"
+                            className="rdr-btn-brown"
+                            style={{padding: '0.8rem 2rem'}}
+                            disabled={updating}
+                        >
+                            {updating ? 'Sellando...' : 'GUARDAR CAMBIOS'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Right Column: Image */}
-                <div className="profile-image-section">
+                <div className="rdr-profile-image-section">
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -361,45 +318,64 @@ function Profile() {
                         style={{ display: 'none' }}
                     />
 
-                    <div className="profile-image-uploader" onClick={handleImageClick}>
+                    <div className="rdr-profile-uploader" onClick={handleImageClick}>
                         {formData.profile_image ? (
                             <img src={formData.profile_image} alt="Profile" />
                         ) : (
-                            <img src="/anon.png" alt="Default Profile" />
+                            <div style={{color: '#c0a080', fontFamily: 'Cinzel', fontSize: '3.5rem'}}>
+                                {formData.nombre ? formData.nombre.charAt(0).toUpperCase() : '?'}
+                            </div>
                         )}
-                        <div className="profile-image-overlay">
-                            <span className="image-upload-text">Click to Change</span>
+                        <div className="rdr-profile-overlay">
+                            <span>REVELAR NUEVA FOTO</span>
                         </div>
                     </div>
 
-                    <div className="profile-badge-display">
-                        <div className="big-badge-number">{formData.no_placa || '---'}</div>
-                        <div className="badge-label">OFFICIAL BADGE NUMBER</div>
-                    </div>
+                    {/* Database Usage Statistic */}
+                    {formData.rol === 'Administrador' && dbUsage && (
+                        <div className="rdr-telemetry-block">
+                            <h4 className="rdr-telemetry-title">
+                                ALMACÉN (Admin)
+                            </h4>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#ebd5b3' }}>
+                                <span>{formatBytes(usedBytes)}</span>
+                                <span>500 MB Max</span>
+                            </div>
+
+                            <div className="rdr-telemetry-bar-bg">
+                                <div className="rdr-telemetry-bar-fill" style={{
+                                    width: `${usagePercent}%`,
+                                    backgroundColor: usagePercent > 80 ? '#8b0000' : (usagePercent > 50 ? '#d4af37' : '#4ade80')
+                                }} />
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#c0a080', marginTop: '0.5rem', textAlign: 'right' }}>
+                                {usagePercent.toFixed(1)}% ocupado
+                            </div>
+                        </div>
+                    )}
                 </div>
             </form>
 
             {/* Image Cropper Modal */}
             {editorOpen && createPortal(
-                <div className="cropper-modal-overlay">
-                    <div className="cropper-modal-content">
-                        <h3>Adjust Profile Picture</h3>
-                        <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+                <div className="rdr-modal-overlay" style={{zIndex: 4000}}>
+                    <div className="rdr-modal-content">
+                        <h3 style={{textAlign: 'center', marginBottom: '1.5rem'}}>RECORTAR FOTOGRAFÍA</h3>
+                        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
                             <AvatarEditor
                                 ref={editorRef}
                                 image={imageSrc}
-                                width={250}
-                                height={250}
-                                border={20}
-                                borderRadius={125} // Circular mask
-                                color={[0, 0, 0, 0.6]} // RGBA
+                                width={180}
+                                height={180}
+                                border={[20, 20]}
+                                color={[26, 15, 10, 0.8]}
                                 scale={scale}
-                                rotate={0}
                             />
                         </div>
 
-                        <div className="cropper-controls">
-                            <div className="zoom-slider-container">
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#d4af37' }}>
                                 <span>-</span>
                                 <input
                                     type="range"
@@ -407,15 +383,15 @@ function Profile() {
                                     max="3"
                                     step="0.01"
                                     value={scale}
-                                    className="zoom-slider"
+                                    style={{accentColor: '#8b5a2b', width: '200px'}}
                                     onChange={(e) => setScale(parseFloat(e.target.value))}
                                 />
                                 <span>+</span>
                             </div>
 
-                            <div className="cropper-actions">
-                                <button type="button" className="login-button btn-secondary" onClick={handleCancelImage}>Cancel</button>
-                                <button type="button" className="login-button" onClick={handleSaveImage}>Save Image</button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button type="button" className="rdr-btn-brown" style={{background: 'transparent', borderColor: '#8b5a2b', color: '#c0a080'}} onClick={handleCancelImage}>Cancelar</button>
+                                <button type="button" className="rdr-btn-brown" onClick={handleSaveImage}>Fijar Foto WebP</button>
                             </div>
                         </div>
                     </div>

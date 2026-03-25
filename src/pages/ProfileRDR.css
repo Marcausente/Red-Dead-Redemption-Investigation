@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cinzel:wght@500;700;900&display=swap');
+
+.rdr-profile-container {
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.rdr-profile-title {
+    font-family: 'Cinzel', serif;
+    font-size: 2.2rem;
+    color: #d4af37;
+    margin-bottom: 2rem;
+    text-align: center;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.4);
+    padding-bottom: 1rem;
+    text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
+}
+
+.rdr-profile-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px; /* Main content vs Image column */
+    gap: 3rem;
+    align-items: flex-start;
+}
+
+@media(max-width: 900px) {
+    .rdr-profile-layout {
+        grid-template-columns: 1fr;
+        grid-auto-flow: dense;
+    }
+    .rdr-profile-image-section {
+        grid-row: 1; /* Move photo to top on mobile */
+    }
+}
+
+.rdr-profile-form-section {
+    background-color: #ebd5b3; /* Aged paper texture */
+    background-image: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, transparent 100%),
+        radial-gradient(ellipse at center, transparent 0%, rgba(139, 69, 19, 0.15) 100%);
+    border: 1px solid #8b5a2b;
+    border-radius: 2px;
+    box-shadow: 
+        4px 6px 15px rgba(0,0,0,0.8), 
+        inset 0 0 40px rgba(139, 69, 19, 0.3);
+    padding: 3rem;
+}
+
+.rdr-profile-h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    color: #3b2b1d;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #8b5a2b;
+    padding-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.rdr-profile-divider {
+    height: 2px;
+    background: repeating-linear-gradient(to right, transparent, transparent 10px, rgba(139, 69, 19, 0.6) 10px, rgba(139, 69, 19, 0.6) 20px);
+    margin: 2rem 0;
+    opacity: 0.5;
+}
+
+.rdr-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.rdr-form-label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    color: #8b5a2b;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.rdr-form-input {
+    width: 100%;
+    padding: 0.8rem;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #8b5a2b;
+    color: #2c1e16;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    outline: none;
+    transition: border-bottom-color 0.3s;
+}
+
+.rdr-form-input:focus {
+    border-bottom-color: #1a0f0a;
+    background: rgba(139, 69, 19, 0.05); /* very slight tint */
+}
+
+.rdr-form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    border-bottom-style: dashed;
+}
+
+/* Photo Upload Column */
+.rdr-profile-image-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    background: rgba(26, 15, 10, 0.4);
+    padding: 2rem;
+    border-radius: 4px;
+    border: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.rdr-profile-uploader {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    background-color: #1a0f0a;
+    border: 3px solid #3b2b1d;
+    border-radius: 4px; /* classic old photo */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rdr-profile-uploader img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: sepia(0.6) contrast(1.1) brightness(0.9);
+    transition: transform 0.3s ease;
+}
+
+.rdr-profile-uploader:hover img {
+    transform: scale(1.05);
+}
+
+.rdr-profile-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.rdr-profile-uploader:hover .rdr-profile-overlay {
+    opacity: 1;
+}
+
+.rdr-profile-overlay span {
+    color: #d4af37;
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    text-align: center;
+    padding: 0 1rem;
+}
+
+/* Database Telemetry block */
+.rdr-telemetry-block {
+    margin-top: 3rem;
+    background: #1a0f0a;
+    border: 1px solid #4a3321;
+    border-radius: 2px;
+    padding: 1.5rem;
+}
+
+.rdr-telemetry-title {
+    font-family: 'Cinzel', serif;
+    color: #c0a080;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #3b2b1d;
+    padding-bottom: 0.5rem;
+}
+
+.rdr-telemetry-bar-bg {
+    width: 100%;
+    height: 10px;
+    background: #2b1d12;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.rdr-telemetry-bar-fill {
+    height: 100%;
+    transition: width 1s ease-out;
+}

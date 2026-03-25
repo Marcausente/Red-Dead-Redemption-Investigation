@@ -109,8 +109,8 @@ function MainLayout() {
                         </div>
                     )}
                     <div className="sidebar-actions">
-                        <button onClick={() => navigate('/profile')} className="action-btn">Edit Profile</button>
-                        <button onClick={handleLogout} className="action-btn logout">Logout</button>
+                        <button onClick={() => navigate('/profile')} className="action-btn">Editar Expediente</button>
+                        <button onClick={handleLogout} className="action-btn logout">Cerrar Sesión</button>
                     </div>
                 </div>
             </aside>
