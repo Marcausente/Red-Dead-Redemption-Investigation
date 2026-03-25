@@ -281,15 +281,13 @@ function Incidents() {
                                 <label className="rdr-form-label">Titular Oficial</label>
                                 <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div className="rdr-form-group">
-                                    <label className="rdr-form-label">Fecha y Hora</label>
-                                    <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
-                                </div>
-                                <div className="rdr-form-group">
-                                    <label className="rdr-form-label">Zona del Suceso (Localización)</label>
-                                    <input type="text" className="rdr-input" value={location} onChange={e => setLocation(e.target.value)} />
-                                </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Fecha y Hora</label>
+                                <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
+                            </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Zona del Suceso (Localización)</label>
+                                <input type="text" className="rdr-input" value={location} onChange={e => setLocation(e.target.value)} />
                             </div>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Culpabilidad Presunta de Organización (Opcional)</label>
@@ -342,20 +340,18 @@ function Incidents() {
                                 <label className="rdr-form-label">Nombre de la Operación / Titular</label>
                                 <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div className="rdr-form-group">
-                                    <label className="rdr-form-label">Fecha y Hora</label>
-                                    <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
-                                </div>
-                                <div className="rdr-form-group">
-                                    <label className="rdr-form-label">Investigación Cruzada (Opcional)</label>
-                                    <select className="rdr-input" value={groupId} onChange={e => setGroupId(e.target.value)} style={{ appearance: 'auto' }}>
-                                        <option value="" style={{ background: '#1a0f0a', color: '#d4c5a7' }}>-- SIN ORGANIZACIÓN FIJA --</option>
-                                        {groupsList.map(g => (
-                                            <option key={g.id} value={g.id} style={{ background: '#1a0f0a', color: '#d4af37' }}>{g.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Fecha y Hora</label>
+                                <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
+                            </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Investigación Cruzada (Opcional)</label>
+                                <select className="rdr-input" value={groupId} onChange={e => setGroupId(e.target.value)} style={{ appearance: 'auto' }}>
+                                    <option value="" style={{ background: '#1a0f0a', color: '#d4c5a7' }}>-- SIN ORGANIZACIÓN FIJA --</option>
+                                    {groupsList.map(g => (
+                                        <option key={g.id} value={g.id} style={{ background: '#1a0f0a', color: '#d4af37' }}>{g.name}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="rdr-form-group">
