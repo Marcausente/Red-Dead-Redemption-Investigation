@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import '../index.css';
+import './CasesRDR.css';
 
 function Cases() {
     const navigate = useNavigate();
     const [cases, setCases] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('Open'); // Open, Closed, Archived
+    const [filter, setFilter] = useState('Abierto'); // Abierto, Cerrado, Archivado
     const [showCreateModal, setShowCreateModal] = useState(false);
 
-    // Form State
+    // Form State (Defaulting to 1880)
     const [newCase, setNewCase] = useState({
         title: '',
         location: '',
-        occurred_at: '',
+        occurred_at: '1880-05-25T12:00', 
         description: '',
-        assignments: [], // Array of user IDs
-        initialImage: null // New Field
+        assignments: [],
+        initialImage: null
     });
-    const [users, setUsers] = useState([]); // For assignment selection
+    
+    // Only agents permitted for assigning
+    const [detectives, setDetectives] = useState([]); 
     const [submitting, setSubmitting] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
@@ -33,7 +35,7 @@ function Cases() {
         };
         getCurrentUser();
         fetchCases();
-        fetchUsers();
+        fetchDetectives();
     }, [filter]);
 
     const fetchCases = async () => {
@@ -44,16 +46,31 @@ function Cases() {
         setLoading(false);
     };
 
-    const fetchUsers = async () => {
-        const { data } = await supabase.from('users').select('id, nombre, apellido, rango, profile_image').order('rango');
-        setUsers(data || []);
+    const fetchDetectives = async () => {
+        // Fetch users who are strictly Investigators + Admins
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, nombre, apellido, rango, profile_image, rol')
+            .in('rol', ['Administrador', 'Coordinador', 'Agente BOI', 'Ayudante BOI'])
+            .order('rol');
+            
+        if (!error && data) {
+            setDetectives(data);
+        }
     };
 
     const handleCreateCase = async (e) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            // Need a proper timestamp
+            // Check date to ensure 1880 constraint manually on frontend to prevent mistakes
+            const yearObj = new Date(newCase.occurred_at).getFullYear();
+            if (yearObj !== 1880) {
+                alert("AVISO: Todos los reportes deben datarse en el año 1880.");
+                setSubmitting(false);
+                return;
+            }
+
             const timestamp = new Date(newCase.occurred_at).toISOString();
 
             const { data: newId, error } = await supabase.rpc('create_new_case', {
@@ -68,11 +85,10 @@ function Cases() {
             if (error) throw error;
 
             setShowCreateModal(false);
-            // Navigate to the new case
             navigate(`/cases/${newId}`);
 
         } catch (err) {
-            alert('Error creating case: ' + err.message);
+            alert('Error abriendo caso: ' + err.message);
         } finally {
             setSubmitting(false);
         }
@@ -98,176 +114,154 @@ function Cases() {
             img.src = event.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; // Consistent with Gangs
+                const MAX_WIDTH = 800;
                 const scaleSize = img.width > MAX_WIDTH ? (MAX_WIDTH / img.width) : 1;
                 canvas.width = img.width * scaleSize;
                 canvas.height = img.height * scaleSize;
+                
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                // Compress to 0.6 quality
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                
+                // Compress severely to WebP to maintain fast DB speeds and RDR aesthetic
+                const dataUrl = canvas.toDataURL('image/webp', 0.6);
                 setNewCase({ ...newCase, initialImage: dataUrl });
             };
         };
     };
 
-    const statusColors = {
-        'Open': '#4ade80',     // Green
-        'Closed': '#f87171',   // Red
-        'Archived': '#94a3b8'  // Gray
+    const getStatusClass = (status) => {
+        if(status === 'Abierto') return 'status-abierto';
+        if(status === 'Cerrado') return 'status-cerrado';
+        return 'status-archivado';
     };
 
     return (
-        <div className="documentation-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-            <div className="doc-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <img src="/mcd.png" alt="MCD Logo" style={{ height: '70px', width: 'auto', filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }} />
-                    <h2 className="page-title" style={{ margin: 0 }}>MAJOR CRIMES DIVISION</h2>
-                </div>
-                {currentUser?.rol !== 'Ayudante' && (
-                    <button className="login-button" style={{ width: 'auto', margin: 0 }} onClick={() => setShowCreateModal(true)}>
-                        + New Case File
+        <div className="rdr-cases-container">
+            <div className="rdr-cases-header">
+                <h2 className="rdr-cases-title">ARCHIVO CRIMINAL (BOI)</h2>
+                {currentUser?.rol !== 'Externo' && (
+                    <button className="rdr-btn-brown" style={{margin: 0}} onClick={() => setShowCreateModal(true)}>
+                        + FUNDAR EXPEDIENTE
                     </button>
                 )}
             </div>
 
-            {/* Filter Tabs */}
-            <div className="filter-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
-                {['Open', 'Closed', 'Archived'].map(status => (
+            <div className="rdr-cases-tabs">
+                {['Abierto', 'Cerrado', 'Archivado'].map(status => (
                     <button
                         key={status}
                         onClick={() => setFilter(status)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: filter === status ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                            fontWeight: filter === status ? 'bold' : 'normal',
-                            fontSize: '1.rem',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px',
-                            padding: '0.5rem 1rem',
-                            borderBottom: filter === status ? '2px solid var(--accent-gold)' : 'none'
-                        }}
+                        className={`rdr-tab-btn ${filter === status ? 'active' : ''}`}
                     >
-                        {status} Cases
+                        Expedientes {status}s
                     </button>
                 ))}
             </div>
 
-            {/* Case Grid */}
             {loading ? (
-                <div className="loading-container">Loading Case Files...</div>
+                <div style={{color: '#c0a080', fontFamily: 'Cinzel', textAlign: 'center', marginTop: '3rem'}}>Buscando en los archivadores...</div>
             ) : cases.length === 0 ? (
-                <div className="empty-list">No {filter.toLowerCase()} cases found in the database.</div>
+                <div style={{color: '#8b5a2b', fontFamily: 'Playfair Display', textAlign: 'center', marginTop: '3rem'}}>No se encontraron expedientes con la condición de "{filter}".</div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '2rem' }}>
+                <div className="rdr-cases-grid">
                     {cases.map(c => (
-                        <div
-                            key={c.id}
-                            className="announcement-card case-card"
-                            style={{ cursor: 'pointer', transition: 'transform 0.2s', borderLeft: `4px solid ${statusColors[c.status]}` }}
-                            onClick={() => navigate(`/cases/${c.id}`)}
-                        >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>CASE #{String(c.case_number).padStart(3, '0')}</span>
-                                <span style={{ color: statusColors[c.status], fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase' }}>{c.status}</span>
+                        <div key={c.id} className="rdr-case-folder" onClick={() => navigate(`/cases/${c.id}`)}>
+                            <div className="rdr-case-id">CÓDIGO #{String(c.case_number).padStart(4, '0')}</div>
+                            <div className={`rdr-case-status ${getStatusClass(c.status)}`}>{c.status}</div>
+                            
+                            <h3 className="rdr-case-name">{c.title}</h3>
+
+                            <div className="rdr-case-meta">
+                                <b>Lugar:</b> {c.location}<br/>
+                                <b>Fecha:</b> {new Date(c.occurred_at).toLocaleDateString()}
                             </div>
 
-                            <h3 style={{ margin: '0.5rem 0', color: 'var(--text-primary)', fontSize: '1.2rem' }}>{c.title}</h3>
-
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                                📍 {c.location} • 📅 {new Date(c.occurred_at).toLocaleDateString()}
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ display: 'flex', marginRight: '0.5rem' }}>
-                                    {c.assigned_avatars && c.assigned_avatars.map((img, idx) => (
+                            <div className="rdr-case-footer">
+                                <span style={{fontSize: '0.85rem', color: '#4a3321', fontFamily: 'Cinzel', fontWeight: 'bold'}}>INVESTIGADORES</span>
+                                <div className="rdr-assigned-group">
+                                    {c.assigned_avatars && c.assigned_avatars.length > 0 ? c.assigned_avatars.map((img, idx) => (
                                         <img
                                             key={idx}
                                             src={img || '/anon.png'}
-                                            alt="Ag"
-                                            style={{
-                                                width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover',
-                                                marginLeft: idx > 0 ? '-10px' : '0', border: '2px solid var(--bg-dark)'
-                                            }}
+                                            className="rdr-assigned-avatar"
+                                            alt="Inv"
                                         />
-                                    ))}
+                                    )) : (
+                                        <span style={{fontSize: '0.8rem', fontStyle: 'italic', color: '#8b5a2b'}}>Nadie</span>
+                                    )}
                                 </div>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Assigned</span>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Create Modal */}
+            {/* CREATE MODAL */}
             {showCreateModal && (
-                <div className="cropper-modal-overlay">
-                    <div className="cropper-modal-content" style={{ maxWidth: '700px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <h3 className="section-title">Open New Case File</h3>
-                        <form onSubmit={handleCreateCase}>
-                            <div className="form-group">
-                                <label className="form-label">Case Title</label>
-                                <input type="text" className="form-input" required
-                                    value={newCase.title} onChange={e => setNewCase({ ...newCase, title: e.target.value })} placeholder="e.g. The Dockside Murder" />
+                <div className="rdr-modal-overlay">
+                    <div className="rdr-modal-content" style={{maxWidth: '700px'}}>
+                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>NUEVO REGISTRO CRIMINAL</h2>
+                        
+                        <form onSubmit={handleCreateCase} className="rdr-cases-form-scroll">
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Títular del Caso</label>
+                                <input type="text" className="rdr-input" required
+                                    value={newCase.title} onChange={e => setNewCase({ ...newCase, title: e.target.value })} placeholder="Ej: Los asaltos a los trenes del valle..." />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div className="form-group">
-                                    <label className="form-label">Location</label>
-                                    <input type="text" className="form-input" required
-                                        value={newCase.location} onChange={e => setNewCase({ ...newCase, location: e.target.value })} placeholder="e.g. Alta St, Apt 4" />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1rem' }}>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Ubicación Primaria</label>
+                                    <input type="text" className="rdr-input" required
+                                        value={newCase.location} onChange={e => setNewCase({ ...newCase, location: e.target.value })} placeholder="Ej: Blackwater" />
                                 </div>
-                                <div className="form-group">
-                                    <label className="form-label">Date & Time</label>
-                                    <input type="datetime-local" className="form-input" required
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Sucedido (Año 1880)</label>
+                                    <input type="datetime-local" className="rdr-input" required
                                         value={newCase.occurred_at} onChange={e => setNewCase({ ...newCase, occurred_at: e.target.value })} />
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Initial Report / Description</label>
-                                <textarea className="eval-textarea" rows="5" required
-                                    value={newCase.description} onChange={e => setNewCase({ ...newCase, description: e.target.value })} placeholder="Describe the initial facts..." />
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Descripción Inicial / Testimonios</label>
+                                <textarea className="rdr-input" rows="5" required
+                                    value={newCase.description} onChange={e => setNewCase({ ...newCase, description: e.target.value })} placeholder="Redacta la escena original con pluma o dicta testigos..." />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Evidence / Scene Photo (Optional)</label>
-                                <label className="login-button btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textAlign: 'center', height: '50px', borderStyle: 'dashed' }}>
-                                    📷 Add Photo
+                            <div className="rdr-form-group" style={{marginTop: '1rem'}}>
+                                <label className="rdr-form-label">Fotografía del Suceso (Opcional)</label>
+                                <label className="rdr-btn-brown" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textAlign: 'center', background: 'transparent', borderColor: '#8b5a2b', color: '#4a3321', borderStyle: 'dashed' }}>
+                                    ADJUNTAR ESTAMPA FOTOGRÁFICA
                                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                                 </label>
                                 {newCase.initialImage && (
                                     <div style={{ position: 'relative', marginTop: '10px' }}>
-                                        <img src={newCase.initialImage} style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} alt="Evidence" />
-                                        <button type="button" onClick={() => setNewCase({ ...newCase, initialImage: null })} style={{ position: 'absolute', top: 5, right: 5, background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer' }}>×</button>
+                                        <img src={newCase.initialImage} style={{ width: '100%', maxHeight: '300px', objectFit: 'cover', borderRadius: '2px', border: '5px solid #2b1d12' }} alt="Muestra" />
+                                        <button type="button" onClick={() => setNewCase({ ...newCase, initialImage: null })} style={{ position: 'absolute', top: 10, right: 10, background: '#8b0000', color: 'white', border: 'none', padding: '5px 10px', fontWeight: 'bold', cursor: 'pointer', borderRadius: '2px' }}>XT</button>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Assign Detectives</label>
-                                <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>
-                                    {users.map(u => (
+                            <div className="rdr-form-group" style={{marginTop: '1.5rem'}}>
+                                <label className="rdr-form-label">Asignar Investigadores de Campo</label>
+                                <div className="rdr-assign-list">
+                                    {detectives.map(u => (
                                         <div key={u.id}
-                                            onClick={() => toggleAssignment(u.id)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', padding: '0.5rem',
-                                                cursor: 'pointer', background: newCase.assignments.includes(u.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
-                                                marginBottom: '2px'
-                                            }}>
-                                            <input type="checkbox" checked={newCase.assignments.includes(u.id)} readOnly style={{ marginRight: '10px' }} />
-                                            <img src={u.profile_image || '/anon.png'} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%', marginRight: '10px' }} />
-                                            <span style={{ fontSize: '0.9rem' }}>{u.rango} {u.nombre} {u.apellido}</span>
+                                            className={`rdr-assign-row ${newCase.assignments.includes(u.id) ? 'selected' : ''}`}
+                                            onClick={() => toggleAssignment(u.id)}>
+                                            <input type="checkbox" checked={newCase.assignments.includes(u.id)} readOnly style={{ marginRight: '15px', accentColor: '#8b5a2b' }} />
+                                            <img src={u.profile_image || '/anon.png'} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', marginRight: '15px', border: '1px solid #8b5a2b', objectFit: 'cover' }} />
+                                            <span style={{ fontSize: '1rem', fontFamily: 'Cinzel', fontWeight: 'bold' }}>{u.rango}</span>
+                                            <span style={{ fontSize: '1rem', marginLeft: '8px', fontFamily: 'Playfair Display' }}>{u.nombre} {u.apellido}</span>
                                         </div>
                                     ))}
+                                    {detectives.length === 0 && <div style={{padding: '1rem', fontStyle: 'italic', color: '#8b5a2b'}}>No hay agentes en servicio aún.</div>}
                                 </div>
                             </div>
 
-                            <div className="cropper-actions" style={{ justifyContent: 'flex-end', marginTop: '2rem' }}>
-                                <button type="button" className="login-button btn-secondary" onClick={() => setShowCreateModal(false)} style={{ width: 'auto' }}>Cancel</button>
-                                <button type="submit" className="login-button" disabled={submitting} style={{ width: 'auto' }}>{submitting ? 'Creating...' : 'Create Case File'}</button>
+                            <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', marginTop: '2.5rem' }}>
+                                <button type="button" className="rdr-btn-brown" onClick={() => setShowCreateModal(false)} style={{ background: 'transparent', borderColor: '#8b0000', color: '#8b0000' }}>Canclar</button>
+                                <button type="submit" className="rdr-btn-brown" disabled={submitting}>{submitting ? 'Sellando...' : 'INSCRIBIR CASO'}</button>
                             </div>
                         </form>
                     </div>
