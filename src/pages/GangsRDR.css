@@ -50,6 +50,15 @@
     flex-direction: column;
     box-shadow: 4px 6px 15px rgba(0,0,0,0.6), inset 0 0 20px rgba(139, 69, 19, 0.1);
     max-height: 100%;
+    overflow-y: auto;
+}
+
+.rdr-trello-column::-webkit-scrollbar {
+    width: 8px;
+}
+.rdr-trello-column::-webkit-scrollbar-thumb {
+    background: #8b5a2b;
+    border-radius: 4px;
 }
 
 .rdr-col-color-bar {
@@ -57,12 +66,17 @@
     width: 100%;
     border-radius: 4px 4px 0 0;
     border-bottom: 2px solid #3b2b1d;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .rdr-col-head {
     padding: 1.5rem;
     border-bottom: 2px dashed #8b5a2b;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .rdr-col-name {
@@ -92,20 +106,13 @@
     font-weight: bold;
     font-size: 0.95rem;
     color: #4a3321;
+    flex-shrink: 0;
 }
 
 .rdr-col-body {
     padding: 1rem;
-    overflow-y: auto;
     flex: 1;
-}
-
-.rdr-col-body::-webkit-scrollbar {
-    width: 6px;
-}
-.rdr-col-body::-webkit-scrollbar-thumb {
-    background: #8b5a2b;
-    border-radius: 4px;
+    flex-shrink: 0;
 }
 
 .rdr-section-title {
