@@ -1,897 +1,419 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import IncidentCard from '../components/IncidentCard';
-import OutingCard from '../components/OutingCard';
-import '../index.css';
+import './GangsRDR.css'; // Inheriting Trello Western Aesthetics
 
 function Incidents() {
-    const [incidents, setIncidents] = useState([]);
-    const [outings, setOutings] = useState([]);
+    const [board, setBoard] = useState({ unlinked_incidents: [], linked_incidents: [], field_ops: [] });
     const [loading, setLoading] = useState(true);
+    const [groupsList, setGroupsList] = useState([]);
+    const [usersList, setUsersList] = useState([]);
 
-    // Modals
-    const [showIncidentModal, setShowIncidentModal] = useState(false);
-    const [showEditIncidentModal, setShowEditIncidentModal] = useState(false);
-    const [editingIncident, setEditingIncident] = useState(null);
-    const [showOutingModal, setShowOutingModal] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+    // Drag to scroll
+    const boardRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
+
     const [expandedImage, setExpandedImage] = useState(null);
-    const [showEditOutingModal, setShowEditOutingModal] = useState(false);
-    const [editingOuting, setEditingOuting] = useState(null);
+    const [activeModal, setActiveModal] = useState(null); // 'incident' or 'fieldop'
+    const [submitting, setSubmitting] = useState(false);
 
-    // Data for Selectors
-    const [users, setUsers] = useState([]);
-    const [gangs, setGangs] = useState([]); // List of gangs for selection
-    const [interrogations, setInterrogations] = useState([]); // List of interrogations for selection
+    // Common states
+    const [title, setTitle] = useState('');
+    const [groupId, setGroupId] = useState('');
+    const [occurredAt, setOccurredAt] = useState('');
+    const [location, setLocation] = useState('');
+    const [description, setDescription] = useState('');
+    const [images, setImages] = useState([]);
 
-    // --- FORM STATE: INCIDENT ---
-    const [incTitle, setIncTitle] = useState('');
-    const [incLocation, setIncLocation] = useState('');
-    const [incDate, setIncDate] = useState('');
-    const [incTablet, setIncTablet] = useState('');
-    const [incDesc, setIncDesc] = useState('');
-    const [incGangIds, setIncGangIds] = useState([]); // Changed to array for multiple gangs
-    const [incInterrogationIds, setIncInterrogationIds] = useState([]); // Array of linked interrogation IDs
-    const [incImages, setIncImages] = useState([]);
-
-    // --- FORM STATE: OUTING ---
-    const [outTitle, setOutTitle] = useState('');
-    const [outDate, setOutDate] = useState('');
-    const [outDetectives, setOutDetectives] = useState([]); // Array of IDs
-    const [outReason, setOutReason] = useState('');
-    const [outInfo, setOutInfo] = useState('');
-    const [outGangIds, setOutGangIds] = useState([]); // Changed to array for multiple gangs
-    const [outInterrogationIds, setOutInterrogationIds] = useState([]); // Array of linked interrogation IDs
-    const [outImages, setOutImages] = useState([]);
-
+    // Field Ops specific
+    const [reason, setReason] = useState('');
+    const [info, setInfo] = useState('');
+    const [selectedAgents, setSelectedAgents] = useState([]);
 
     useEffect(() => {
         loadData();
-        fetchUsers();
-        fetchGangs();
-        fetchInterrogations();
     }, []);
 
     const loadData = async () => {
         setLoading(true);
-        const { data: incData, error: incError } = await supabase.rpc('get_incidents_v2');
-        const { data: outData, error: outError } = await supabase.rpc('get_outings');
+        // Load Board Data
+        const { data: boardData, error: e1 } = await supabase.rpc('get_incidents_board_data');
+        if (boardData) setBoard(boardData);
 
-        if (incError) console.error("Incidents Error:", incError);
-        if (outError) {
-            console.error("Outings Error:", outError);
-            alert("Error loading outings: " + outError.message);
+        // Load active groups for Drowpdown Form
+        const { data: groupData } = await supabase.from('criminal_groups').select('id, name').eq('is_archived', false);
+        if (groupData) setGroupsList(groupData);
+
+        // Load Investigators for Field Ops
+        const { data: userData } = await supabase.from('users').select('id, nombre, apellido, rol');
+        if (userData) {
+            setUsersList(userData.filter(u => ['Administrador', 'Jefatura', 'Coordinador', 'Agente BOI', 'Ayudante BOI'].includes(u.rol)));
         }
 
-        setIncidents(incData || []);
-        setOutings(outData || []);
         setLoading(false);
     };
 
-    const fetchUsers = async () => {
-        const { data } = await supabase.from('users').select('id, nombre, apellido, rango, profile_image').order('rango');
-        setUsers(data || []);
-    };
-
-    const fetchGangs = async () => {
-        // Simple fetch for dropdown
-        const { data } = await supabase.from('gangs').select('id, name').order('name');
-        setGangs(data || []);
-    };
-
-    const fetchInterrogations = async () => {
-        // Fetch available interrogations for linking
-        console.log("Fetching interrogations...");
-        const { data, error } = await supabase.rpc('get_available_interrogations_to_link');
-        if (error) console.error("Error fetching interrogations:", error);
-        if (data) {
-            console.log("Interrogations fetched:", data);
-            setInterrogations(data);
-        }
-    };
-
-    // --- IMAGE HANDLING ---
-    const handleImageUpload = (e, setState) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    const scaleSize = img.width > MAX_WIDTH ? (MAX_WIDTH / img.width) : 1;
-                    canvas.width = img.width * scaleSize;
-                    canvas.height = img.height * scaleSize;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    setState(prev => [...prev, dataUrl]);
-                };
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const scaleSize = img.width > MAX_WIDTH ? (MAX_WIDTH / img.width) : 1;
+                canvas.width = img.width * scaleSize;
+                canvas.height = img.height * scaleSize;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const webP = canvas.toDataURL('image/webp', 0.6);
+                setImages([...images, webP]);
             };
-        });
+        };
+        e.target.value = ''; // reset format
     };
 
-    // --- SUBMIT HANDLERS ---
+    const removeImage = (idx) => {
+        setImages(images.filter((_, i) => i !== idx));
+    };
+
+    const closeModal = () => {
+        setActiveModal(null);
+        setTitle(''); setGroupId(''); setOccurredAt(''); setLocation('');
+        setDescription(''); setImages([]); setReason(''); setInfo(''); setSelectedAgents([]);
+    };
+
+    const handleAgentToggle = (id) => {
+        if (selectedAgents.includes(id)) setSelectedAgents(selectedAgents.filter(a => a !== id));
+        else setSelectedAgents([...selectedAgents, id]);
+    };
+
     const handleSubmitIncident = async (e) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            // Format title with tablet number if present
-            const finalTitle = incTablet ? `[${incTablet}] ${incTitle}` : incTitle;
-
-            const { data: newId, error } = await supabase.rpc('create_incident_v2', {
-                p_title: finalTitle,
-                p_location: incLocation,
-                p_occurred_at: new Date(incDate).toISOString(),
-                p_tablet_number: incTablet,
-                p_description: incDesc,
-                p_images: incImages
+            await supabase.rpc('create_incident', {
+                p_title: title,
+                p_group_id: groupId || null,
+                p_occurred_at: occurredAt || new Date().toISOString(),
+                p_location: location,
+                p_description: description,
+                p_images: images
             });
-            if (error) throw error;
-
-            // Link to multiple gangs
-            if (incGangIds.length > 0) {
-                for (const gangId of incGangIds) {
-                    await supabase.rpc('link_incident_gang', { p_incident_id: newId, p_gang_id: gangId });
-                }
-            }
-
-            // Link to Interrogations
-            if (incInterrogationIds.length > 0) {
-                for (const intId of incInterrogationIds) {
-                    await supabase.rpc('link_incident_interrogation', { p_incident_id: newId, p_interrogation_id: intId });
-                }
-            }
-
-            setShowIncidentModal(false);
-            resetIncidentForm();
+            closeModal();
             loadData();
-        } catch (err) {
-            alert('Error creating incident: ' + err.message);
-        } finally {
-            setSubmitting(false);
-        }
+        } catch (err) { alert(err.message); } finally { setSubmitting(false); }
     };
 
-    const handleSubmitOuting = async (e) => {
+    const handleSubmitFieldOp = async (e) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const { data: newId, error } = await supabase.rpc('create_outing', {
-                p_title: outTitle,
-                p_occurred_at: new Date(outDate).toISOString(),
-                p_reason: outReason,
-                p_info_obtained: outInfo,
-                p_images: outImages,
-                p_detective_ids: outDetectives
+            await supabase.rpc('create_field_operation', {
+                p_title: title,
+                p_group_id: groupId || null,
+                p_occurred_at: occurredAt || new Date().toISOString(),
+                p_reason: reason,
+                p_info: info,
+                p_agents: selectedAgents,
+                p_images: images
             });
-            if (error) throw error;
-
-            // Link to multiple gangs
-            if (outGangIds.length > 0) {
-                for (const gangId of outGangIds) {
-                    await supabase.rpc('link_outing_gang', { p_outing_id: newId, p_gang_id: gangId });
-                }
-            }
-
-            // Link to Interrogations
-            if (outInterrogationIds.length > 0) {
-                for (const intId of outInterrogationIds) {
-                    await supabase.rpc('link_outing_interrogation', { p_outing_id: newId, p_interrogation_id: intId });
-                }
-            }
-
-            setShowOutingModal(false);
-            resetOutingForm();
+            closeModal();
             loadData();
-        } catch (err) {
-            alert('Error creating outing: ' + err.message);
-        } finally {
-            setSubmitting(false);
-        }
+        } catch (err) { alert(err.message); } finally { setSubmitting(false); }
     };
 
-    // --- DELETE HANDLERS ---
-    const handleDeleteIncident = async (id) => {
-        if (!confirm("Are you sure you want to delete this incident?")) return;
+    const handleDeleteIncident = async (id, type) => {
+        if (!window.confirm("¿Seguro que quieres arrancar este informe de los tablones del muro?")) return;
         try {
-            const { error } = await supabase.rpc('delete_incident', { p_id: id });
-            if (error) throw error;
+            if (type === 'inc') await supabase.rpc('delete_incident', { p_id: id });
+            else await supabase.rpc('delete_field_operation', { p_id: id });
             loadData();
         } catch (err) { alert(err.message); }
     };
 
-    const handleDeleteOuting = async (id) => {
-        if (!confirm("Are you sure you want to delete this outing?")) return;
-        try {
-            const { error } = await supabase.rpc('delete_outing', { p_id: id });
-            if (error) throw error;
-            loadData();
-        } catch (err) { alert(err.message); }
+    // Formatear Fecha
+    const fd = (dateStr) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        return d.toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).toUpperCase();
     };
 
-    // --- EDIT HANDLERS ---
-    const handleEditIncident = async (incident) => {
-        setEditingIncident(incident);
+    // Scroll drag handlers
+    const hDown = (e) => { if (!boardRef.current) return; setIsDragging(true); setStartX(e.pageX - boardRef.current.offsetLeft); setScrollLeft(boardRef.current.scrollLeft); boardRef.current.style.cursor = 'grabbing'; };
+    const hLeave = () => { setIsDragging(false); if (boardRef.current) boardRef.current.style.cursor = 'grab'; };
+    const hUp = () => { setIsDragging(false); if (boardRef.current) boardRef.current.style.cursor = 'grab'; };
+    const hMove = (e) => { if (!isDragging) return; e.preventDefault(); const walk = (e.pageX - boardRef.current.offsetLeft - startX) * 2; boardRef.current.scrollLeft = scrollLeft - walk; };
 
-        let titleToEdit = incident.title;
-        // If title starts with "[123] ", strip it for editing if it matches the tablet number
-        if (incident.tablet_incident_number) {
-            const prefix = `[${incident.tablet_incident_number}] `;
-            if (titleToEdit.startsWith(prefix)) {
-                titleToEdit = titleToEdit.substring(prefix.length);
-            }
-        }
 
-        setIncTitle(titleToEdit);
-        setIncLocation(incident.location || '');
-        setIncDate(incident.occurred_at ? new Date(incident.occurred_at).toISOString().slice(0, 16) : '');
-        setIncTablet(incident.tablet_incident_number || '');
-        setIncDesc(incident.description || '');
-        setIncImages(incident.images || []); // Load existing images
+    const IncidentCard = ({ i }) => (
+        <div className="rdr-trello-card" style={{ borderLeftColor: i.group_color || '#c0a080' }}>
+            <span style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem' }} onClick={() => handleDeleteIncident(i.id, 'inc')}>🗑️</span>
 
-        // Load linked gangs
-        const { data: linkedGangs, error } = await supabase.rpc('get_incident_gangs', { p_incident_id: incident.record_id });
-        if (!error && linkedGangs) {
-            setIncGangIds(linkedGangs.map(g => g.gang_id));
-        }
+            <div style={{ fontSize: '0.7rem', color: '#8b5a2b', fontWeight: 'bold' }}>INCIDENTE Nº 00{i.number}</div>
+            <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.2rem', color: '#1a0f0a', margin: '5px 0' }}>{i.title.toUpperCase()}</div>
 
-        // Load linked interrogations
-        const { data: linkedInters, error: intError } = await supabase.rpc('get_incident_interrogations', { p_incident_id: incident.record_id });
-        if (!intError && linkedInters) {
-            setIncInterrogationIds(linkedInters.map(i => i.id));
-        } else {
-            setIncInterrogationIds([]);
-        }
+            <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#8b5a2b', display: 'flex', flexDirection: 'column' }}>
+                {i.occurred_at && <span>🕒 {fd(i.occurred_at)}</span>}
+                {i.location && <span>📍 {i.location}</span>}
+                {i.group_name && <span style={{ color: i.group_color || '#8b0000', fontWeight: 'bold' }}>🏴 {i.group_name}</span>}
+            </div>
 
-        setShowEditIncidentModal(true);
-    };
+            <div className="rdr-card-text" style={{ marginTop: '10px' }}>{i.description}</div>
 
-    const handleUpdateIncident = async (e) => {
-        e.preventDefault();
-        setSubmitting(true);
-        try {
-            // Format title with tablet number if present
-            const finalTitle = incTablet ? `[${incTablet}] ${incTitle}` : incTitle;
+            {i.images && i.images.length > 0 && (
+                <div className="rdr-camp-imgs" style={{ marginTop: '10px' }}>
+                    {i.images.map((img, idx) => (
+                        <img key={idx} src={img} alt="Incident" onClick={() => setExpandedImage(img)} title="Evidencia Fotográfica" style={{ width: i.images.length === 1 ? '100%' : '48%', height: 'auto', maxHeight: '150px' }} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 
-            // Update incident details
-            const { error: updateError } = await supabase.rpc('update_incident', {
-                p_incident_id: editingIncident.record_id,
-                p_title: finalTitle,
-                p_location: incLocation,
-                p_occurred_at: new Date(incDate).toISOString(),
-                p_tablet_number: incTablet,
-                p_description: incDesc,
-                p_images: incImages // Pass updated images
-            });
-            if (updateError) throw updateError;
+    const FieldOpCard = ({ o }) => (
+        <div className="rdr-trello-card" style={{ borderLeftColor: o.group_color || '#2e4a2e' }}>
+            <span style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem' }} onClick={() => handleDeleteIncident(o.id, 'op')}>🗑️</span>
 
-            // Get current gang links
-            const { data: currentGangs } = await supabase.rpc('get_incident_gangs', { p_incident_id: editingIncident.record_id });
-            const currentGangIds = currentGangs ? currentGangs.map(g => g.gang_id) : [];
+            <div style={{ fontSize: '0.7rem', color: '#556b2f', fontWeight: 'bold' }}>EXPEDICIÓN Nº OP-{o.number}</div>
+            <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.2rem', color: '#1a0f0a', margin: '5px 0' }}>{o.title.toUpperCase()}</div>
 
-            // Remove unselected gangs
-            for (const gangId of currentGangIds) {
-                if (!incGangIds.includes(gangId)) {
-                    await supabase.rpc('unlink_incident_gang', { p_incident_id: editingIncident.record_id, p_gang_id: gangId });
-                }
-            }
+            <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#8b5a2b', display: 'flex', flexDirection: 'column' }}>
+                {o.occurred_at && <span>🕒 {fd(o.occurred_at)}</span>}
+                {o.group_name && <span style={{ color: o.group_color || '#8b0000', fontWeight: 'bold' }}>🏴 Destino: {o.group_name}</span>}
+            </div>
 
-            // Add newly selected gangs
-            for (const gangId of incGangIds) {
-                if (!currentGangIds.includes(gangId)) {
-                    await supabase.rpc('link_incident_gang', { p_incident_id: editingIncident.record_id, p_gang_id: gangId });
-                }
-            }
+            <div className="rdr-section-title" style={{ marginTop: '10px', fontSize: '0.7rem' }}>OBJETIVO</div>
+            <div className="rdr-card-text">{o.reason}</div>
 
-            // --- Update Interrogations ---
-            const { data: currentInters } = await supabase.rpc('get_incident_interrogations', { p_incident_id: editingIncident.record_id });
-            const currentIntIds = currentInters ? currentInters.map(i => i.id) : [];
+            <div className="rdr-section-title" style={{ marginTop: '10px', fontSize: '0.7rem' }}>INTELIGENCIA RECOPILADA</div>
+            <div className="rdr-card-text" style={{ color: '#1a0f0a' }}>{o.info || <span style={{ fontStyle: 'italic', color: '#c0a080' }}>N/A</span>}</div>
 
-            // Unlink removed
-            for (const intId of currentIntIds) {
-                if (!incInterrogationIds.includes(intId)) {
-                    await supabase.rpc('unlink_incident_interrogation', { p_incident_id: editingIncident.record_id, p_interrogation_id: intId });
-                }
-            }
-            // Link new
-            for (const intId of incInterrogationIds) {
-                if (!currentIntIds.includes(intId)) {
-                    await supabase.rpc('link_incident_interrogation', { p_incident_id: editingIncident.record_id, p_interrogation_id: intId });
-                }
-            }
+            {o.agents && o.agents.length > 0 && (
+                <>
+                    <div className="rdr-section-title" style={{ marginTop: '10px', fontSize: '0.7rem' }}>AGENTES DEL GRUPO</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                        {o.agents.map(a => (
+                            <div key={a.id} title={`${a.name} ${a.surname}`} style={{ width: '25px', height: '25px', borderRadius: '50%', backgroundColor: '#c0a080', border: '1px solid #1a0f0a', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {a.photo ? <img src={a.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#1a0f0a' }}>{a.name?.charAt(0)}</span>}
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
 
-            setShowEditIncidentModal(false);
-            setEditingIncident(null);
-            resetIncidentForm();
-            loadData();
-        } catch (err) {
-            alert('Error updating incident: ' + err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
+            {o.images && o.images.length > 0 && (
+                <div className="rdr-camp-imgs" style={{ marginTop: '10px' }}>
+                    {o.images.map((img, idx) => (
+                        <img key={idx} src={img} alt="Op" onClick={() => setExpandedImage(img)} title="Documentación Gráfica" style={{ width: o.images.length === 1 ? '100%' : '48%', height: 'auto', maxHeight: '150px' }} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 
-    const handleEditOuting = async (outing) => {
-        try {
-            setEditingOuting(outing);
-            setOutTitle(outing.title);
-            setOutDate(outing.occurred_at ? new Date(outing.occurred_at).toISOString().slice(0, 16) : '');
-            setOutReason(outing.reason || '');
-            setOutInfo(outing.info_obtained || '');
-            setOutImages(outing.images || []);
-
-            // Setup detectives
-            if (outing.detectives && outing.detectives.length > 0) {
-                setOutDetectives(outing.detectives.map(d => d.id).filter(id => id));
-            } else {
-                setOutDetectives([]);
-            }
-
-            // Setup Gangs - fetch linked
-            const { data: linkedGangs, error } = await supabase.rpc('get_outing_gangs', { p_outing_id: outing.record_id });
-            if (error) {
-                console.error("Error fetching outing gangs:", error);
-            }
-            if (!error && linkedGangs) {
-                setOutGangIds(linkedGangs.map(g => g.gang_id));
-            } else {
-                setOutGangIds([]);
-            }
-
-            // Setup Interrogations - fetch linked
-            const { data: linkedInters, error: intError } = await supabase.rpc('get_outing_interrogations', { p_outing_id: outing.record_id });
-            if (!intError && linkedInters) {
-                setOutInterrogationIds(linkedInters.map(i => i.id));
-            } else {
-                setOutInterrogationIds([]);
-            }
-
-            setShowEditOutingModal(true);
-        } catch (e) {
-            console.error("Error opening outing edit modal:", e);
-            alert("Error opening edit menu: " + e.message);
-        }
-    };
-
-    const handleUpdateOuting = async (e) => {
-        e.preventDefault();
-        setSubmitting(true);
-        try {
-            const { error: updateError } = await supabase.rpc('update_outing', {
-                p_outing_id: editingOuting.record_id,
-                p_title: outTitle,
-                p_occurred_at: new Date(outDate).toISOString(),
-                p_reason: outReason,
-                p_info_obtained: outInfo,
-                p_images: outImages
-            });
-            if (updateError) throw updateError;
-
-            // --- Update Gangs ---
-            const { data: currentGangs } = await supabase.rpc('get_outing_gangs', { p_outing_id: editingOuting.record_id });
-            const currentGangIds = currentGangs ? currentGangs.map(g => g.gang_id) : [];
-
-            // Unlink
-            for (const gangId of currentGangIds) {
-                if (!outGangIds.includes(gangId)) {
-                    await supabase.rpc('unlink_outing_gang', { p_outing_id: editingOuting.record_id, p_gang_id: gangId });
-                }
-            }
-            // Link
-            for (const gangId of outGangIds) {
-                if (!currentGangIds.includes(gangId)) {
-                    await supabase.rpc('link_outing_gang', { p_outing_id: editingOuting.record_id, p_gang_id: gangId });
-                }
-            }
-
-            // --- Update Detectives ---
-            // Fetch current detectives from RPC to be safe, or assume existing state is accurate enough for diffing if we haven't changed anything else.
-            // Using get_outing_detectives RPC I added.
-            const { data: currentDetectives } = await supabase.rpc('get_outing_detectives', { p_outing_id: editingOuting.record_id });
-            // currentDetectives is array of objects { user_id }
-            const currentDetIds = currentDetectives ? currentDetectives.map(d => d.user_id) : [];
-
-            // Unlink removed
-            for (const uid of currentDetIds) {
-                if (!outDetectives.includes(uid)) {
-                    await supabase.rpc('unlink_outing_detective', { p_outing_id: editingOuting.record_id, p_user_id: uid });
-                }
-            }
-            // Link new
-            for (const uid of outDetectives) {
-                if (!currentDetIds.includes(uid)) {
-                    await supabase.rpc('link_outing_detective', { p_outing_id: editingOuting.record_id, p_user_id: uid });
-                }
-            }
-
-            // --- Update Interrogations ---
-            const { data: currentInters } = await supabase.rpc('get_outing_interrogations', { p_outing_id: editingOuting.record_id });
-            const currentIntIds = currentInters ? currentInters.map(i => i.id) : [];
-
-            // Unlink removed
-            for (const intId of currentIntIds) {
-                if (!outInterrogationIds.includes(intId)) {
-                    await supabase.rpc('unlink_outing_interrogation', { p_outing_id: editingOuting.record_id, p_interrogation_id: intId });
-                }
-            }
-            // Link new
-            for (const intId of outInterrogationIds) {
-                if (!currentIntIds.includes(intId)) {
-                    await supabase.rpc('link_outing_interrogation', { p_outing_id: editingOuting.record_id, p_interrogation_id: intId });
-                }
-            }
-
-            setShowEditOutingModal(false);
-            setEditingOuting(null);
-            resetOutingForm();
-            loadData();
-        } catch (err) {
-            alert('Error updating outing: ' + err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    // --- HELPERS ---
-    const resetIncidentForm = () => {
-        setIncTitle(''); setIncLocation(''); setIncDate(''); setIncTablet(''); setIncDesc(''); setIncGangIds([]); setIncInterrogationIds([]); setIncImages([]);
-    };
-    const resetOutingForm = () => {
-        setOutTitle(''); setOutDate(''); setOutDetectives([]); setOutReason(''); setOutInfo(''); setOutGangIds([]); setOutInterrogationIds([]); setOutImages([]);
-    };
-
-    const toggleGangIncident = (gangId) => {
-        setIncGangIds(prev => prev.includes(gangId) ? prev.filter(id => id !== gangId) : [...prev, gangId]);
-    };
-
-    const toggleInterrogationIncident = (intId) => {
-        setIncInterrogationIds(prev => prev.includes(intId) ? prev.filter(id => id !== intId) : [...prev, intId]);
-    };
-
-    const toggleGangOuting = (gangId) => {
-        setOutGangIds(prev => prev.includes(gangId) ? prev.filter(id => id !== gangId) : [...prev, gangId]);
-    };
-
-    const toggleInterrogationOuting = (intId) => {
-        setOutInterrogationIds(prev => prev.includes(intId) ? prev.filter(id => id !== intId) : [...prev, intId]);
-    };
-
-    // Toggle Detective Selection
-    const toggleDetective = (id) => {
-        setOutDetectives(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    };
-
-    // --- RENDER ---
     return (
-        <div className="documentation-container" style={{ maxWidth: '1600px', margin: '0 auto', padding: '2rem' }}>
-
-            {/* GLOBAL ACTIONS */}
-            <div className="doc-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 className="page-title" style={{ margin: 0 }}>OPERATIONAL LOGS</h2>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="login-button" style={{ width: 'auto' }} onClick={() => setShowIncidentModal(true)}>
-                        + New Incident
-                    </button>
-                    <button className="login-button" style={{ width: 'auto', background: 'var(--accent-gold)', color: 'black' }} onClick={() => setShowOutingModal(true)}>
-                        + New Outing
-                    </button>
+        <div className="rdr-trello-container">
+            <div className="rdr-trello-header">
+                <div>
+                    <h2 className="rdr-trello-title">TABLÓN DE INCIDENTES Y SALIDAS</h2>
+                    <p style={{ fontFamily: 'Playfair Display', color: '#c0a080', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>Muro de seguimiento de la actividad criminal en el Estado</p>
+                </div>
+                <div style={{ display: 'flex', gap: '15px' }}>
+                    <button className="rdr-btn-brown" style={{ margin: 0 }} onClick={() => setActiveModal('incident')}>+ CINTA DE INCIDENTE</button>
+                    <button className="rdr-btn-brown" style={{ margin: 0, background: 'rgba(46, 74, 46, 0.4)', borderColor: '#556b2f' }} onClick={() => setActiveModal('fieldop')}>+ REGISTRAR SALIDA</button>
                 </div>
             </div>
 
-            {loading ? <div className="loading-container">Loading Operation Data...</div> : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2rem' }}>
+            {loading ? <div style={{ color: '#c0a080', fontFamily: 'Cinzel', textAlign: 'center', marginTop: '3rem' }}>Clavando fotos en los corchos...</div> : (
+                <div className="rdr-trello-board" ref={boardRef} onMouseDown={hDown} onMouseLeave={hLeave} onMouseUp={hUp} onMouseMove={hMove} style={{ cursor: 'grab', userSelect: isDragging ? 'none' : 'auto' }}>
 
-                    {/* COLUMN 1: UNLINKED INCIDENTS */}
-                    <div className="column-container">
-                        <h3 className="section-title" style={{ borderBottom: '2px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>General Incidents</h3>
-                        <div className="scroll-feed" style={{ maxHeight: '80vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                            {incidents.filter(i => !i.gang_id).length === 0 ? <div className="empty-list">No unlinked incidents.</div> :
-                                incidents.filter(i => !i.gang_id).map(inc => (
-                                    <IncidentCard
-                                        key={inc.record_id}
-                                        data={inc}
-                                        onExpand={setExpandedImage}
-                                        onDelete={handleDeleteIncident}
-                                        onEdit={handleEditIncident}
-                                    />
-                                ))
-                            }
+                    {/* COLUMNA 1: Sucesos Perdidos */}
+                    <div className="rdr-trello-column">
+                        <div className="rdr-col-color-bar" style={{ backgroundColor: '#7c7c7c' }}></div>
+                        <div className="rdr-col-head">
+                            <h3 className="rdr-col-name" style={{ margin: 0 }}>SUCESOS SIN LIGAR A GRUPOS</h3>
+                            <div style={{ fontFamily: 'Playfair Display', fontStyle: 'italic', fontSize: '0.8rem', color: '#8b5a2b', marginTop: '5px' }}>Incidentes carentes de vinculación firme.</div>
+                        </div>
+                        <div className="rdr-col-body">
+                            {board.unlinked_incidents.length === 0 ? <p style={{ color: '#8b5a2b', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Corcho limpio.</p> : board.unlinked_incidents.map(i => <IncidentCard key={i.id} i={i} />)}
                         </div>
                     </div>
 
-                    {/* COLUMN 2: LINKED INCIDENTS */}
-                    <div className="column-container">
-                        <h3 className="section-title" style={{ borderBottom: '2px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>Gang Linked Incidents</h3>
-                        <div className="scroll-feed" style={{ maxHeight: '80vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                            {incidents.filter(i => i.gang_id).length === 0 ? <div className="empty-list">No linked incidents.</div> :
-                                incidents.filter(i => i.gang_id).map(inc => (
-                                    <IncidentCard
-                                        key={inc.record_id}
-                                        data={inc}
-                                        onExpand={setExpandedImage}
-                                        onDelete={handleDeleteIncident}
-                                        onEdit={handleEditIncident}
-                                    />
-                                ))
-                            }
+                    {/* COLUMNA 2: Sucesos Vinculados */}
+                    <div className="rdr-trello-column">
+                        <div className="rdr-col-color-bar" style={{ backgroundColor: '#8b0000' }}></div>
+                        <div className="rdr-col-head">
+                            <h3 className="rdr-col-name" style={{ margin: 0 }}>SUCCESOS LIGADOS A GRUPOS</h3>
+                            <div style={{ fontFamily: 'Playfair Display', fontStyle: 'italic', fontSize: '0.8rem', color: '#8b5a2b', marginTop: '5px' }}>Sucesos atribuidos a Bandas Identificadas.</div>
+                        </div>
+                        <div className="rdr-col-body">
+                            {board.linked_incidents.length === 0 ? <p style={{ color: '#8b5a2b', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Corcho limpio.</p> : board.linked_incidents.map(i => <IncidentCard key={i.id} i={i} />)}
                         </div>
                     </div>
 
-                    {/* COLUMN 3: OUTINGS */}
-                    <div className="column-container">
-                        <h3 className="section-title" style={{ borderBottom: '2px solid var(--accent-gold)', paddingBottom: '0.5rem' }}>Outings & Patrols</h3>
-                        <div className="scroll-feed" style={{ maxHeight: '80vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                            {outings.length === 0 ? <div className="empty-list">No outings logged.</div> :
-                                outings.map(out => (
-                                    <OutingCard
-                                        key={out.record_id}
-                                        data={out}
-                                        onExpand={setExpandedImage}
-                                        onDelete={handleDeleteOuting}
-                                        onEdit={handleEditOuting}
-                                    />
-                                ))
-                            }
+                    {/* COLUMNA 3: Salidas / Field Ops */}
+                    <div className="rdr-trello-column">
+                        <div className="rdr-col-color-bar" style={{ backgroundColor: '#2e4a2e' }}></div>
+                        <div className="rdr-col-head">
+                            <h3 className="rdr-col-name" style={{ margin: 0 }}>EXPEDICIONES SOBRE EL TERRENO</h3>
+                            <div style={{ fontFamily: 'Playfair Display', fontStyle: 'italic', fontSize: '0.8rem', color: '#8b5a2b', marginTop: '5px' }}>Movimientos de Agentes del BOI aprobados.</div>
+                        </div>
+                        <div className="rdr-col-body">
+                            {board.field_ops.length === 0 ? <p style={{ color: '#8b5a2b', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bandeja de permisos vacía.</p> : board.field_ops.map(o => <FieldOpCard key={o.id} o={o} />)}
                         </div>
                     </div>
 
                 </div>
             )}
 
-            {/* --- MODAL: NEW INCIDENT --- */}
-            {showIncidentModal && (
-                <div className="cropper-modal-overlay">
-                    <div className="cropper-modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <h3 className="section-title">Log New Incident</h3>
+            {/* MODAL INCIDENTE */}
+            {activeModal === 'incident' && (
+                <div className="rdr-modal-overlay">
+                    <div className="rdr-modal-content" style={{ maxWidth: '550px' }}>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>REPORTE DE INCIDENTE</h2>
                         <form onSubmit={handleSubmitIncident}>
-                            <div className="form-group"><label>Title</label><input className="form-input" required value={incTitle} onChange={e => setIncTitle(e.target.value)} /></div>
-                            <div className="form-group">
-                                <label>Link to Syndicates (Optional)</label>
-                                <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                    {gangs.map(g => (
-                                        <div key={g.id} onClick={() => toggleGangIncident(g.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: incGangIds.includes(g.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                            <input type="checkbox" checked={incGangIds.includes(g.id)} readOnly style={{ marginRight: '10px' }} />
-                                            <span style={{ fontSize: '0.9rem' }}>{g.name}</span>
-                                        </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Titular Oficial</label>
+                                <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Fecha y Hora</label>
+                                    <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
+                                </div>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Zona del Suceso (Localización)</label>
+                                    <input type="text" className="rdr-input" value={location} onChange={e => setLocation(e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Culpabilidad Presunta de Organización (Opcional)</label>
+                                <select className="rdr-input" value={groupId} onChange={e => setGroupId(e.target.value)} style={{ appearance: 'auto' }}>
+                                    <option value="" style={{ background: '#1a0f0a', color: '#d4c5a7' }}>-- SIN VÍNCULO DETERMINADO --</option>
+                                    {groupsList.map(g => (
+                                        <option key={g.id} value={g.id} style={{ background: '#1a0f0a', color: '#d4af37' }}>{g.name}</option>
                                     ))}
-                                </div>
+                                </select>
+                            </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Descripción de Hechos</label>
+                                <textarea className="rdr-input" rows="4" required value={description} onChange={e => setDescription(e.target.value)} />
                             </div>
 
-
-                            <div className="form-group">
-                                <label>Link to Interrogations (Optional)</label>
-                                <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                    {interrogations.length === 0 ? <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No interrogations available.</div> :
-                                        interrogations.map(int => (
-                                            <div key={int.id} onClick={() => toggleInterrogationIncident(int.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: incInterrogationIds.includes(int.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                <input type="checkbox" checked={incInterrogationIds.includes(int.id)} readOnly style={{ marginRight: '10px' }} />
-                                                <span style={{ fontSize: '0.9rem' }}>{int.title} ({new Date(int.created_at).toLocaleDateString()})</span>
-                                            </div>
-                                        ))
-                                    }
-                                </div>
-                            </div>
-
-                            <div className="form-group"><label>Date & Time</label><input type="datetime-local" className="form-input" required value={incDate} onChange={e => setIncDate(e.target.value)} /></div>
-                            <div className="form-group"><label>Location (Optional)</label><input className="form-input" value={incLocation} onChange={e => setIncLocation(e.target.value)} /></div>
-                            <div className="form-group"><label>Tablet Incident # (Optional)</label><input className="form-input" value={incTablet} onChange={e => setIncTablet(e.target.value)} /></div>
-                            <div className="form-group"><label>Description (Optional)</label><textarea className="eval-textarea" rows="4" value={incDesc} onChange={e => setIncDesc(e.target.value)} /></div>
-
-                            <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Images (Optional)</label>
-                                <label htmlFor="inc-file-upload" className="login-button btn-secondary" style={{ width: 'auto', display: 'inline-block', cursor: 'pointer', textAlign: 'center' }}>
-                                    📷 Upload Images
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Evidencias Fotográficas (Opcional)</label>
+                                <label className="rdr-btn-brown" style={{ width: '100%', display: 'block', cursor: 'pointer', textAlign: 'center', background: 'transparent', borderColor: '#8b5a2b', borderStyle: 'dashed', padding: '10px' }}>
+                                    ENGRAPAR NUEVA ESTAMPA
+                                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                                 </label>
-                                <input
-                                    id="inc-file-upload"
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    onChange={(e) => handleImageUpload(e, setIncImages)}
-                                    style={{ display: 'none' }}
-                                />
-                                <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }}>
-                                    {incImages.map((src, i) => (
-                                        <div key={i} style={{ position: 'relative' }}>
-                                            <img src={src} style={{ height: '60px', borderRadius: '4px', border: '1px solid #444' }} alt="" />
-                                            <button
-                                                type="button"
-                                                onClick={() => setIncImages(prev => prev.filter((_, idx) => idx !== i))}
-                                                style={{ position: 'absolute', top: -5, right: -5, background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', border: 'none', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-
-
-                                    ))}
-                                </div>
+                                {images.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                                        {images.map((img, idx) => (
+                                            <div key={idx} style={{ position: 'relative' }}>
+                                                <img src={img} style={{ height: '60px', border: '1px solid #8b5a2b' }} />
+                                                <div onClick={() => removeImage(idx)} style={{ position: 'absolute', top: -5, right: -5, background: 'black', color: 'red', borderRadius: '50%', width: '15px', height: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px' }}>×</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="cropper-actions" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
-                                <button type="button" className="login-button btn-secondary" onClick={() => setShowIncidentModal(false)} style={{ width: 'auto' }}>Cancel</button>
-                                <button type="submit" className="login-button" style={{ width: 'auto' }} disabled={submitting}>{submitting ? '...' : 'Create'}</button>
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                <button type="button" className="rdr-btn-brown" style={{ background: 'transparent' }} onClick={closeModal}>Cancelar</button>
+                                <button type="submit" className="rdr-btn-brown" disabled={submitting}>Oficializar Incidente</button>
                             </div>
                         </form>
-                    </div >
-                </div >
+                    </div>
+                </div>
             )}
 
-            {/* --- MODAL: EDIT INCIDENT --- */}
-            {
-                showEditIncidentModal && (
-                    <div className="cropper-modal-overlay">
-                        <div className="cropper-modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <h3 className="section-title">Edit Incident</h3>
-                            <form onSubmit={handleUpdateIncident}>
-                                <div className="form-group"><label>Title</label><input className="form-input" required value={incTitle} onChange={e => setIncTitle(e.target.value)} /></div>
-                                <div className="form-group">
-                                    <label>Link to Syndicates (Optional)</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {gangs.map(g => (
-                                            <div key={g.id} onClick={() => toggleGangIncident(g.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: incGangIds.includes(g.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                <input type="checkbox" checked={incGangIds.includes(g.id)} readOnly style={{ marginRight: '10px' }} />
-                                                <span style={{ fontSize: '0.9rem' }}>{g.name}</span>
+            {/* MODAL SALIDA */}
+            {activeModal === 'fieldop' && (
+                <div className="rdr-modal-overlay">
+                    <div className="rdr-modal-content" style={{ maxWidth: '600px' }}>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>PERMISO DE EXPEDICIÓN</h2>
+                        <form onSubmit={handleSubmitFieldOp}>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Nombre de la Operación / Titular</label>
+                                <input type="text" className="rdr-input" required value={title} onChange={e => setTitle(e.target.value)} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Fecha y Hora</label>
+                                    <input type="datetime-local" className="rdr-input" required value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={{ colorScheme: 'dark' }} />
+                                </div>
+                                <div className="rdr-form-group">
+                                    <label className="rdr-form-label">Investigación Cruzada (Opcional)</label>
+                                    <select className="rdr-input" value={groupId} onChange={e => setGroupId(e.target.value)} style={{ appearance: 'auto' }}>
+                                        <option value="" style={{ background: '#1a0f0a', color: '#d4c5a7' }}>-- SIN ORGANIZACIÓN FIJA --</option>
+                                        {groupsList.map(g => (
+                                            <option key={g.id} value={g.id} style={{ background: '#1a0f0a', color: '#d4af37' }}>{g.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Escuadrón Asignado (Agentes Presentes)</label>
+                                <div style={{ height: '100px', overflowY: 'auto', background: 'rgba(0,0,0,0.5)', border: '1px solid #8b5a2b', padding: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    {usersList.map(u => (
+                                        <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e4d5b7', fontSize: '0.85rem' }}>
+                                            <input type="checkbox" checked={selectedAgents.includes(u.id)} onChange={() => handleAgentToggle(u.id)} style={{ accentColor: '#8b5a2b' }} />
+                                            {u.nombre} {u.apellido} <span style={{ color: '#8b5a2b' }}>({u.rol})</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Motivo de Movilización</label>
+                                <textarea className="rdr-input" rows="2" required value={reason} onChange={e => setReason(e.target.value)} />
+                            </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Inteligencia y Datos Obtenidos</label>
+                                <textarea className="rdr-input" rows="3" value={info} onChange={e => setInfo(e.target.value)} />
+                            </div>
+
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Soporte Visual de Terreno (Opcional)</label>
+                                <label className="rdr-btn-brown" style={{ width: '100%', display: 'block', cursor: 'pointer', textAlign: 'center', background: 'transparent', borderColor: '#556b2f', borderStyle: 'dashed', padding: '10px' }}>
+                                    AGREGAR INFORME FOTOGRÁFICO
+                                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                                </label>
+                                {images.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                                        {images.map((img, idx) => (
+                                            <div key={idx} style={{ position: 'relative' }}>
+                                                <img src={img} style={{ height: '60px', border: '1px solid #556b2f' }} />
+                                                <div onClick={() => removeImage(idx)} style={{ position: 'absolute', top: -5, right: -5, background: 'black', color: 'red', borderRadius: '50%', width: '15px', height: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px' }}>×</div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                )}
+                            </div>
 
-                                <div className="form-group">
-                                    <label>Link to Interrogations (Optional)</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {interrogations.length === 0 ? <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No interrogations available.</div> :
-                                            interrogations.map(int => (
-                                                <div key={int.id} onClick={() => toggleInterrogationIncident(int.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: incInterrogationIds.includes(int.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                    <input type="checkbox" checked={incInterrogationIds.includes(int.id)} readOnly style={{ marginRight: '10px' }} />
-                                                    <span style={{ fontSize: '0.9rem' }}>{int.title} ({new Date(int.created_at).toLocaleDateString()})</span>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-
-                                <div className="form-group"><label>Date & Time</label><input type="datetime-local" className="form-input" required value={incDate} onChange={e => setIncDate(e.target.value)} /></div>
-                                <div className="form-group"><label>Location (Optional)</label><input className="form-input" value={incLocation} onChange={e => setIncLocation(e.target.value)} /></div>
-                                <div className="form-group"><label>Tablet Incident # (Optional)</label><input className="form-input" value={incTablet} onChange={e => setIncTablet(e.target.value)} /></div>
-                                <div className="form-group"><label>Description (Optional)</label><textarea className="eval-textarea" rows="4" value={incDesc} onChange={e => setIncDesc(e.target.value)} /></div>
-
-                                <div className="form-group">
-                                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>Images (Optional)</label>
-                                    <label htmlFor="inc-edit-upload" className="login-button btn-secondary" style={{ width: 'auto', display: 'inline-block', cursor: 'pointer', textAlign: 'center' }}>
-                                        📷 Upload Images
-                                    </label>
-                                    <input
-                                        id="inc-edit-upload"
-                                        type="file"
-                                        multiple
-                                        accept="image/*"
-                                        onChange={(e) => handleImageUpload(e, setIncImages)}
-                                        style={{ display: 'none' }}
-                                    />
-                                    <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }}>
-                                        {incImages.map((src, i) => (
-                                            <div key={i} style={{ position: 'relative' }}>
-                                                <img src={src} style={{ height: '60px', borderRadius: '4px', border: '1px solid #444' }} alt="" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIncImages(prev => prev.filter((_, idx) => idx !== i))}
-                                                    style={{ position: 'absolute', top: -5, right: -5, background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', border: 'none', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="cropper-actions" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
-                                    <button type="button" className="login-button btn-secondary" onClick={() => { setShowEditIncidentModal(false); setEditingIncident(null); resetIncidentForm(); }} style={{ width: 'auto' }}>Cancel</button>
-                                    <button type="submit" className="login-button" style={{ width: 'auto' }} disabled={submitting}>{submitting ? '...' : 'Update'}</button>
-                                </div>
-                            </form >
-                        </div >
-                    </div >
-                )
-            }
-
-            {/* --- MODAL: NEW OUTING --- */}
-            {
-                showOutingModal && (
-                    <div className="cropper-modal-overlay">
-                        <div className="cropper-modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <h3 className="section-title" style={{ color: 'var(--accent-gold)' }}>Log New Outing</h3>
-                            <form onSubmit={handleSubmitOuting}>
-                                <div className="form-group"><label>Title</label><input className="form-input" required value={outTitle} onChange={e => setOutTitle(e.target.value)} /></div>
-
-                                {/* User Selector */}
-                                <div className="form-group">
-                                    <label>Detectives Present</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {users.map(u => (
-                                            <div key={u.id} onClick={() => toggleDetective(u.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: outDetectives.includes(u.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                <input type="checkbox" checked={outDetectives.includes(u.id)} readOnly style={{ marginRight: '10px' }} />
-                                                <span style={{ fontSize: '0.9rem' }}>{u.rango} {u.nombre} {u.apellido}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Link to Syndicates (Optional)</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {gangs.map(g => (
-                                            <div key={g.id} onClick={() => toggleGangOuting(g.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: outGangIds.includes(g.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                <input type="checkbox" checked={outGangIds.includes(g.id)} readOnly style={{ marginRight: '10px' }} />
-                                                <span style={{ fontSize: '0.9rem' }}>{g.name}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Link to Interrogations (Optional)</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {interrogations.length === 0 ? <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No interrogations available.</div> :
-                                            interrogations.map(int => (
-                                                <div key={int.id} onClick={() => toggleInterrogationOuting(int.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: outInterrogationIds.includes(int.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                    <input type="checkbox" checked={outInterrogationIds.includes(int.id)} readOnly style={{ marginRight: '10px' }} />
-                                                    <span style={{ fontSize: '0.9rem' }}>{int.title} ({new Date(int.created_at).toLocaleDateString()})</span>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-
-                                <div className="form-group"><label>Date & Time</label><input type="datetime-local" className="form-input" required value={outDate} onChange={e => setOutDate(e.target.value)} /></div>
-                                <div className="form-group"><label>Reason</label><input className="form-input" value={outReason} onChange={e => setOutReason(e.target.value)} /></div>
-                                <div className="form-group"><label>Information Obtained</label><textarea className="eval-textarea" rows="4" value={outInfo} onChange={e => setOutInfo(e.target.value)} /></div>
-
-                                <div className="form-group">
-                                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>Images (Optional)</label>
-                                    <label htmlFor="out-file-upload" className="login-button btn-secondary" style={{ width: 'auto', display: 'inline-block', cursor: 'pointer', textAlign: 'center' }}>
-                                        📷 Upload Images
-                                    </label>
-                                    <input
-                                        id="out-file-upload"
-                                        type="file"
-                                        multiple
-                                        accept="image/*"
-                                        onChange={(e) => handleImageUpload(e, setOutImages)}
-                                        style={{ display: 'none' }}
-                                    />
-                                    <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }}>
-                                        {outImages.map((src, i) => (
-                                            <div key={i} style={{ position: 'relative' }}>
-                                                <img src={src} style={{ height: '60px', borderRadius: '4px', border: '1px solid #444' }} alt="" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setOutImages(prev => prev.filter((_, idx) => idx !== i))}
-                                                    style={{ position: 'absolute', top: -5, right: -5, background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', border: 'none', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="cropper-actions" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
-                                    <button type="button" className="login-button btn-secondary" onClick={() => setShowOutingModal(false)} style={{ width: 'auto' }}>Cancel</button>
-                                    <button type="submit" className="login-button" style={{ width: 'auto' }} disabled={submitting}>{submitting ? '...' : 'Create Outing'}</button>
-                                </div>
-                            </form>
-                        </div>
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                <button type="button" className="rdr-btn-brown" style={{ background: 'transparent' }} onClick={closeModal}>Cancelar</button>
+                                <button type="submit" className="rdr-btn-brown" style={{ background: 'rgba(46, 74, 46, 0.4)', borderColor: '#556b2f' }} disabled={submitting}>Desplegar Unidades</button>
+                            </div>
+                        </form>
                     </div>
-                )
-            }
+                </div>
+            )}
 
-            {/* --- MODAL: EDIT OUTING --- */}
-            {
-                showEditOutingModal && (
-                    <div className="cropper-modal-overlay">
-                        <div className="cropper-modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <h3 className="section-title" style={{ color: 'var(--accent-gold)' }}>Edit Outing</h3>
-                            <form onSubmit={handleUpdateOuting}>
-                                <div className="form-group"><label>Title</label><input className="form-input" required value={outTitle} onChange={e => setOutTitle(e.target.value)} /></div>
+            {expandedImage && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }} onClick={() => setExpandedImage(null)}>
+                    <img src={expandedImage} alt="Expanded" style={{ maxWidth: '90vw', maxHeight: '90vh', border: '5px solid #1a0f0a', borderRadius: '2px', boxShadow: '0 0 20px #000' }} />
+                    <div style={{ position: 'absolute', top: '20px', right: '40px', color: '#d4af37', fontSize: '3rem', fontWeight: 'bold' }}>×</div>
+                </div>
+            )}
 
-                                {/* User Selector */}
-                                <div className="form-group">
-                                    <label>Detectives Present</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {users.map(u => (
-                                            <div key={u.id} onClick={() => toggleDetective(u.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: outDetectives.includes(u.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                <input type="checkbox" checked={outDetectives.includes(u.id)} readOnly style={{ marginRight: '10px' }} />
-                                                <span style={{ fontSize: '0.9rem' }}>{u.rango} {u.nombre} {u.apellido}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Link to Syndicates (Optional)</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {gangs.map(g => (
-                                            <div key={g.id} onClick={() => toggleGangOuting(g.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: outGangIds.includes(g.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                <input type="checkbox" checked={outGangIds.includes(g.id)} readOnly style={{ marginRight: '10px' }} />
-                                                <span style={{ fontSize: '0.9rem' }}>{g.name}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Link to Interrogations (Optional)</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        {interrogations.length === 0 ? <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No interrogations available.</div> :
-                                            interrogations.map(int => (
-                                                <div key={int.id} onClick={() => toggleInterrogationOuting(int.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.3rem', cursor: 'pointer', background: outInterrogationIds.includes(int.id) ? 'rgba(212, 175, 55, 0.2)' : 'transparent' }}>
-                                                    <input type="checkbox" checked={outInterrogationIds.includes(int.id)} readOnly style={{ marginRight: '10px' }} />
-                                                    <span style={{ fontSize: '0.9rem' }}>{int.title} ({new Date(int.created_at).toLocaleDateString()})</span>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-
-                                <div className="form-group"><label>Date & Time</label><input type="datetime-local" className="form-input" required value={outDate} onChange={e => setOutDate(e.target.value)} /></div>
-                                <div className="form-group"><label>Reason</label><input className="form-input" value={outReason} onChange={e => setOutReason(e.target.value)} /></div>
-                                <div className="form-group"><label>Information Obtained</label><textarea className="eval-textarea" rows="4" value={outInfo} onChange={e => setOutInfo(e.target.value)} /></div>
-
-                                <div className="form-group">
-                                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>Images (Optional)</label>
-                                    <label htmlFor="out-edit-upload" className="login-button btn-secondary" style={{ width: 'auto', display: 'inline-block', cursor: 'pointer', textAlign: 'center' }}>
-                                        📷 Upload Images
-                                    </label>
-                                    <input
-                                        id="out-edit-upload"
-                                        type="file"
-                                        multiple
-                                        accept="image/*"
-                                        onChange={(e) => handleImageUpload(e, setOutImages)}
-                                        style={{ display: 'none' }}
-                                    />
-                                    <div style={{ display: 'flex', gap: '5px', marginTop: '10px', flexWrap: 'wrap' }}>
-                                        {outImages.map((src, i) => (
-                                            <div key={i} style={{ position: 'relative' }}>
-                                                <img src={src} style={{ height: '60px', borderRadius: '4px', border: '1px solid #444' }} alt="" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setOutImages(prev => prev.filter((_, idx) => idx !== i))}
-                                                    style={{ position: 'absolute', top: -5, right: -5, background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', border: 'none', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="cropper-actions" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
-                                    <button type="button" className="login-button btn-secondary" onClick={() => { setShowEditOutingModal(false); setEditingOuting(null); resetOutingForm(); }} style={{ width: 'auto' }}>Cancel</button>
-                                    <button type="submit" className="login-button" style={{ width: 'auto' }} disabled={submitting}>{submitting ? '...' : 'Update Outing'}</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* FULL SCREEN IMAGE VIEWER */}
-            {
-                expandedImage && (
-                    <div onClick={() => setExpandedImage(null)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src={expandedImage} alt="" style={{ maxWidth: '95vw', maxHeight: '95vh', objectFit: 'contain' }} />
-                    </div>
-                )
-            }
-        </div >
+        </div>
     );
 }
 

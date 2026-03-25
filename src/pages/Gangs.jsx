@@ -310,8 +310,8 @@ function Gangs() {
                             </div>
 
                             <div className="rdr-col-stats">
-                                <div>Incidentes: <span style={{color: '#8b0000'}}>0</span></div>
-                                <div>Salidas: <span style={{color: '#2e4a2e'}}>0</span></div>
+                                <div>Incidentes: <span style={{color: '#8b0000'}}>{g.incident_count || 0}</span></div>
+                                <div>Salidas: <span style={{color: '#2e4a2e'}}>{g.fieldop_count || 0}</span></div>
                             </div>
 
                             <div className="rdr-col-body">
