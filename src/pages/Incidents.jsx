@@ -16,6 +16,7 @@ function Incidents() {
 
     const [expandedImage, setExpandedImage] = useState(null);
     const [activeModal, setActiveModal] = useState(null); // 'incident' or 'fieldop'
+    const [editingItemId, setEditingItemId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
     // Common states
@@ -83,7 +84,7 @@ function Incidents() {
     };
 
     const closeModal = () => {
-        setActiveModal(null);
+        setActiveModal(null); setEditingItemId(null);
         setIncidentNumber(''); setTitle(''); setGroupId(''); setOccurredAt('1880-01-01T12:00'); setLocation('');
         setDescription(''); setImages([]); setReason(''); setInfo(''); setSelectedAgents([]);
     };
@@ -97,15 +98,9 @@ function Incidents() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await supabase.rpc('create_incident', {
-                p_number: incidentNumber,
-                p_title: title,
-                p_group_id: groupId || null,
-                p_occurred_at: occurredAt || '1880-01-01T12:00:00.000Z',
-                p_location: location,
-                p_description: description,
-                p_images: images
-            });
+            const payload = { p_number: incidentNumber, p_title: title, p_group_id: groupId || null, p_occurred_at: occurredAt || '1880-01-01T12:00:00.000Z', p_location: location, p_description: description, p_images: images };
+            if (editingItemId) await supabase.rpc('update_incident', { p_id: editingItemId, ...payload });
+            else await supabase.rpc('create_incident', payload);
             closeModal();
             loadData();
         } catch (err) { alert(err.message); } finally { setSubmitting(false); }
@@ -115,19 +110,33 @@ function Incidents() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await supabase.rpc('create_field_operation', {
-                p_number: incidentNumber,
-                p_title: title,
-                p_group_id: groupId || null,
-                p_occurred_at: occurredAt || '1880-01-01T12:00:00.000Z',
-                p_reason: reason,
-                p_info: info,
-                p_agents: selectedAgents,
-                p_images: images
-            });
+            const payload = { p_number: incidentNumber, p_title: title, p_group_id: groupId || null, p_occurred_at: occurredAt || '1880-01-01T12:00:00.000Z', p_reason: reason, p_info: info, p_agents: selectedAgents, p_images: images };
+            if (editingItemId) await supabase.rpc('update_field_operation', { p_id: editingItemId, ...payload });
+            else await supabase.rpc('create_field_operation', payload);
             closeModal();
             loadData();
         } catch (err) { alert(err.message); } finally { setSubmitting(false); }
+    };
+
+    const handleEditItem = (item, type) => {
+        setEditingItemId(item.id);
+        setIncidentNumber(item.number || '');
+        setTitle(item.title || '');
+        setGroupId(item.group_id || '');
+        // Adapt '2026-...' to '2026-..T..' string removing Z
+        setOccurredAt(item.occurred_at ? item.occurred_at.substring(0, 16) : '1880-01-01T12:00');
+        setImages(item.images || []);
+        
+        if (type === 'inc') {
+            setLocation(item.location || '');
+            setDescription(item.description || '');
+            setActiveModal('incident');
+        } else {
+            setReason(item.reason || '');
+            setInfo(item.info || '');
+            setSelectedAgents(item.agents ? item.agents.map(a => a.id) : []);
+            setActiveModal('fieldop');
+        }
     };
 
     const handleDeleteIncident = async (id, type) => {
@@ -155,7 +164,10 @@ function Incidents() {
 
     const IncidentCard = ({ i }) => (
         <div className="rdr-trello-card" style={{ borderLeftColor: i.group_color || '#c0a080' }}>
-            <span style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem' }} onClick={() => handleDeleteIncident(i.id, 'inc')}>🗑️</span>
+            <div style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem', display: 'flex', gap: '5px' }}>
+                <span onClick={() => handleEditItem(i, 'inc')}>✏️</span>
+                <span onClick={() => handleDeleteIncident(i.id, 'inc')}>🗑️</span>
+            </div>
 
             <div style={{ fontSize: '0.7rem', color: '#8b5a2b', fontWeight: 'bold' }}>INCIDENTE Nº {i.number || 'N/A'}</div>
             <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.2rem', color: '#1a0f0a', margin: '5px 0' }}>{i.title.toUpperCase()}</div>
@@ -180,7 +192,10 @@ function Incidents() {
 
     const FieldOpCard = ({ o }) => (
         <div className="rdr-trello-card" style={{ borderLeftColor: o.group_color || '#2e4a2e' }}>
-            <span style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem' }} onClick={() => handleDeleteIncident(o.id, 'op')}>🗑️</span>
+            <div style={{ cursor: 'pointer', position: 'absolute', right: '5px', top: '5px', fontSize: '0.8rem', display: 'flex', gap: '5px' }}>
+                <span onClick={() => handleEditItem(o, 'op')}>✏️</span>
+                <span onClick={() => handleDeleteIncident(o.id, 'op')}>🗑️</span>
+            </div>
 
             <div style={{ fontSize: '0.7rem', color: '#556b2f', fontWeight: 'bold' }}>EXPEDICIÓN Nº {o.number || 'N/A'}</div>
             <div style={{ fontFamily: 'Playfair Display', fontWeight: 'bold', fontSize: '1.2rem', color: '#1a0f0a', margin: '5px 0' }}>{o.title.toUpperCase()}</div>
@@ -278,7 +293,7 @@ function Incidents() {
             {activeModal === 'incident' && (
                 <div className="rdr-modal-overlay">
                     <div className="rdr-modal-content" style={{ maxWidth: '550px' }}>
-                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>REPORTE DE INCIDENTE</h2>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>{editingItemId ? 'EDITAR' : 'REPORTE DE'} INCIDENTE</h2>
                         <form onSubmit={handleSubmitIncident}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '1rem' }}>
                                 <div className="rdr-form-group">
@@ -343,7 +358,7 @@ function Incidents() {
             {activeModal === 'fieldop' && (
                 <div className="rdr-modal-overlay">
                     <div className="rdr-modal-content" style={{ maxWidth: '600px' }}>
-                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>PERMISO DE EXPEDICIÓN</h2>
+                        <h2 style={{ textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center' }}>{editingItemId ? 'EDITAR ' : 'PERMISO DE '}EXPEDICIÓN</h2>
                         <form onSubmit={handleSubmitFieldOp}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '1rem' }}>
                                 <div className="rdr-form-group">

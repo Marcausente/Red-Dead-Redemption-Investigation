@@ -150,6 +150,30 @@ CREATE OR REPLACE FUNCTION delete_field_operation(p_id UUID) RETURNS VOID AS $$
 BEGIN DELETE FROM public.field_operations WHERE id = p_id; END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION update_incident(
+    p_id UUID, p_number TEXT, p_title TEXT, p_group_id UUID, p_occurred_at TIMESTAMP WITH TIME ZONE, 
+    p_location TEXT, p_description TEXT, p_images TEXT[]
+) RETURNS VOID AS $$
+BEGIN
+    UPDATE public.incidents SET incident_number = p_number, title = p_title, group_id = p_group_id, occurred_at = p_occurred_at, location = p_location, description = p_description WHERE id = p_id;
+    DELETE FROM public.incident_images WHERE incident_id = p_id;
+    IF array_length(p_images, 1) > 0 THEN INSERT INTO public.incident_images (incident_id, photo) SELECT p_id, unnest(p_images); END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_field_operation(
+    p_id UUID, p_number TEXT, p_title TEXT, p_group_id UUID, p_occurred_at TIMESTAMP WITH TIME ZONE,
+    p_reason TEXT, p_info TEXT, p_agents UUID[], p_images TEXT[]
+) RETURNS VOID AS $$
+BEGIN
+    UPDATE public.field_operations SET op_number = p_number, title = p_title, group_id = p_group_id, occurred_at = p_occurred_at, reason = p_reason, information_obtained = p_info WHERE id = p_id;
+    DELETE FROM public.field_op_agents WHERE op_id = p_id;
+    IF array_length(p_agents, 1) > 0 THEN INSERT INTO public.field_op_agents (op_id, user_id) SELECT p_id, unnest(p_agents); END IF;
+    DELETE FROM public.field_op_images WHERE op_id = p_id;
+    IF array_length(p_images, 1) > 0 THEN INSERT INTO public.field_op_images (op_id, photo) SELECT p_id, unnest(p_images); END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- REDEFINIR GET GROUPS DATA PARA INCLUIR CONTEOS
 CREATE OR REPLACE FUNCTION get_groups_data()
