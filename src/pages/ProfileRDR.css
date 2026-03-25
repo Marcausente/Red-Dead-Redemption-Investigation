@@ -82,10 +82,11 @@
 .rdr-form-input {
     width: 100%;
     padding: 0.8rem;
-    background: transparent;
+    background: rgba(235, 213, 179, 0.3) !important;
     border: none;
     border-bottom: 2px solid #8b5a2b;
-    color: #2c1e16;
+    color: #1a0a05 !important;
+    -webkit-text-fill-color: #1a0a05 !important;
     font-family: 'Playfair Display', serif;
     font-size: 1.2rem;
     outline: none;
@@ -94,7 +95,7 @@
 
 .rdr-form-input:focus {
     border-bottom-color: #1a0f0a;
-    background: rgba(139, 69, 19, 0.05); /* very slight tint */
+    background: rgba(139, 69, 19, 0.1) !important;
 }
 
 .rdr-form-input:disabled {
@@ -102,6 +103,28 @@
     cursor: not-allowed;
     border-bottom-style: dashed;
 }
+
+.rdr-form-input::placeholder {
+    color: rgba(44, 30, 22, 0.5);
+    font-style: italic;
+}
+
+/* Force correct colors inside the native OS dropdown picker */
+.rdr-form-input option {
+    background: #ebd5b3;
+    color: #2c1e16;
+}
+
+/* Override Chromium/Opera autofill which ignores all normal CSS */
+.rdr-form-input:-webkit-autofill,
+.rdr-form-input:-webkit-autofill:hover,
+.rdr-form-input:-webkit-autofill:focus,
+.rdr-form-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 60px #ebd5b3 inset !important;
+    -webkit-text-fill-color: #2c1e16 !important;
+    caret-color: #2c1e16;
+}
+
 
 /* Photo Upload Column */
 .rdr-profile-image-section {

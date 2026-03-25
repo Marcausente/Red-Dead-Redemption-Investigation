@@ -77,11 +77,9 @@ function Profile() {
     const fetchDbUsage = async () => {
         try {
             const { data, error } = await supabase.rpc('get_db_usage');
-            if (error) throw error;
-            setDbUsage(data);
-        } catch (err) {
-            console.error("Failed to fetch DB usage:", err);
-        }
+            if (!error && data) setDbUsage(data);
+            // Silently ignore if RPC not available
+        } catch (_) {}
     };
 
     const handleChange = (e) => {
@@ -220,6 +218,7 @@ function Profile() {
                         <input
                             type="text"
                             className="rdr-form-input"
+                            style={{ color: '#2c1e16', caretColor: '#2c1e16' }}
                             name="nombre"
                             value={formData.nombre}
                             onChange={handleChange}
@@ -232,6 +231,7 @@ function Profile() {
                         <input
                             type="text"
                             className="rdr-form-input"
+                            style={{ color: '#2c1e16', caretColor: '#2c1e16' }}
                             name="apellido"
                             value={formData.apellido}
                             onChange={handleChange}
@@ -244,25 +244,26 @@ function Profile() {
                         {canEditRank ? (
                             <select
                                 className="rdr-form-input"
-                                style={{appearance: 'auto'}}
+                                style={{ appearance: 'auto', color: '#2c1e16', background: '#ebd5b3' }}
                                 name="rango"
                                 value={formData.rango}
                                 onChange={handleChange}
                             >
-                                <option value="Marshal">Marshal</option>
-                                <option value="Sheriff de Condado">Sheriff de Condado</option>
-                                <option value="Sheriff de Pueblo">Sheriff de Pueblo</option>
-                                <option value="Ayudante del Sheriff">Ayudante del Sheriff</option>
-                                <option value="Oficial Supervisor">Oficial Supervisor</option>
-                                <option value="Oficial">Oficial</option>
-                                <option value="Aguacil de Primera">Aguacil de Primera</option>
-                                <option value="Aguacil de Segunda">Aguacil de Segunda</option>
-                                <option value="Recluta">Recluta</option>
+                                <option value="Marshal" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Marshal</option>
+                                <option value="Sheriff de Condado" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Sheriff de Condado</option>
+                                <option value="Sheriff de Pueblo" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Sheriff de Pueblo</option>
+                                <option value="Ayudante del Sheriff" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Ayudante del Sheriff</option>
+                                <option value="Oficial Supervisor" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Oficial Supervisor</option>
+                                <option value="Oficial" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Oficial</option>
+                                <option value="Aguacil de Primera" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Aguacil de Primera</option>
+                                <option value="Aguacil de Segunda" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Aguacil de Segunda</option>
+                                <option value="Recluta" style={{ background: '#ebd5b3', color: '#2c1e16' }}>Recluta</option>
                             </select>
                         ) : (
                             <input
                                 type="text"
                                 className="rdr-form-input"
+                                style={{ color: '#2c1e16' }}
                                 value={formData.rango}
                                 disabled
                             />
