@@ -94,7 +94,11 @@ function Gangs() {
         setActiveGroupId(groupId);
         setEditingItemId(item.id);
         setActiveModal(type);
-        if (type === 'addChar') {
+        if (type === 'createGroup') {
+            setGroupName(item.name);
+            setGroupColor(item.color);
+            setGroupImage(item.influence_zone_image);
+        } else if (type === 'addChar') {
             setCharContent(item.content);
         } else if (type === 'addCamp') {
             setCampMapPhoto(item.map_photo);
@@ -123,7 +127,11 @@ function Gangs() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await supabase.rpc('create_criminal_group', { p_name: groupName, p_color: groupColor, p_image: groupImage });
+            if (editingItemId) {
+                await supabase.rpc('update_criminal_group', { p_group_id: editingItemId, p_name: groupName, p_color: groupColor, p_image: groupImage });
+            } else {
+                await supabase.rpc('create_criminal_group', { p_name: groupName, p_color: groupColor, p_image: groupImage });
+            }
             closeModal();
             loadGroups();
         } catch (err) { alert(err.message); } finally { setSubmitting(false); }
@@ -220,7 +228,10 @@ function Gangs() {
                             <div className="rdr-col-color-bar" style={{backgroundColor: g.color}}></div>
                             
                             <div className="rdr-col-head">
-                                <h3 className="rdr-col-name">{g.name}</h3>
+                                <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '1rem'}}>
+                                    <h3 className="rdr-col-name" style={{margin: 0}}>{g.name}</h3>
+                                    {canManageAll && <span style={{cursor:'pointer', fontSize:'1rem'}} onClick={() => handleEditItem('createGroup', g.id, g)} title="Editar datos de Banda">✏️</span>}
+                                </div>
                                 {g.influence_zone_image ? (
                                     <div style={{position: 'relative'}}>
                                         <div style={{position: 'absolute', top: 5, left: 5, background: 'rgba(0,0,0,0.7)', color: '#d4af37', padding: '2px 5px', fontSize: '0.7rem', fontFamily: 'Cinzel', border: '1px solid #d4af37'}}>ZONA DE INFLUENCIA</div>
@@ -323,7 +334,7 @@ function Gangs() {
             {activeModal === 'createGroup' && (
                 <div className="rdr-modal-overlay">
                     <div className="rdr-modal-content" style={{maxWidth: '500px'}}>
-                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>NUEVO REGISTRO DE BANDA</h2>
+                        <h2 style={{textTransform: 'uppercase', marginBottom: '1.5rem', textAlign: 'center'}}>{editingItemId ? 'ACTUALIZAR DATOS DE BANDA' : 'NUEVO REGISTRO DE BANDA'}</h2>
                         <form onSubmit={handleCreateGroup}>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Nombre de la Banda</label>
@@ -343,7 +354,7 @@ function Gangs() {
                             </div>
                             <div style={{display:'flex', gap:'10px', justifyContent:'flex-end', marginTop:'2rem'}}>
                                 <button type="button" className="rdr-btn-brown" style={{background:'transparent'}} onClick={closeModal}>Cancelar</button>
-                                <button type="submit" className="rdr-btn-brown" disabled={submitting}>Crear Banda</button>
+                                <button type="submit" className="rdr-btn-brown" disabled={submitting}>{editingItemId ? 'Actualizar Banda' : 'Crear Banda'}</button>
                             </div>
                         </form>
                     </div>
@@ -420,19 +431,17 @@ function Gangs() {
                                 <label className="rdr-form-label">Nombres y Apellidos</label>
                                 <input type="text" className="rdr-input" required value={memName} onChange={e => setMemName(e.target.value)} />
                             </div>
-                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
-                                <div className="rdr-form-group">
-                                    <label className="rdr-form-label">Alias Registrado</label>
-                                    <input type="text" className="rdr-input" value={memAlias} onChange={e => setMemAlias(e.target.value)} />
-                                </div>
-                                <div className="rdr-form-group">
-                                    <label className="rdr-form-label">Jerarquía Detectada</label>
-                                    <select className="rdr-input" value={memRole} onChange={e => setMemRole(e.target.value)}>
-                                        <option value="Lider">Líder (Boss)</option>
-                                        <option value="Miembro">Miembro Activo</option>
-                                        <option value="Sospechoso">Sospechoso de Cómplice</option>
-                                    </select>
-                                </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Alias Registrado</label>
+                                <input type="text" className="rdr-input" value={memAlias} onChange={e => setMemAlias(e.target.value)} />
+                            </div>
+                            <div className="rdr-form-group">
+                                <label className="rdr-form-label">Jerarquía u Oficialidad</label>
+                                <select className="rdr-input" value={memRole} onChange={e => setMemRole(e.target.value)} style={{appearance: 'auto'}}>
+                                    <option value="Lider" style={{background: '#1a0f0a', color: '#d4af37'}}>Líder (Jefe Supremo)</option>
+                                    <option value="Miembro" style={{background: '#1a0f0a', color: '#d4af37'}}>Miembro de la Banda</option>
+                                    <option value="Sospechoso" style={{background: '#1a0f0a', color: '#d4af37'}}>Sospechoso de ser Cómplice</option>
+                                </select>
                             </div>
                             <div className="rdr-form-group">
                                 <label className="rdr-form-label">Fotografía o Retrato</label>

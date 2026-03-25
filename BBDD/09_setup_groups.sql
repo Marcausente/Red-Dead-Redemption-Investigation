@@ -133,3 +133,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION update_group_member(p_id UUID, p_name TEXT, p_alias TEXT, p_role TEXT, p_notes TEXT, p_photo TEXT) RETURNS VOID AS $$
 BEGIN UPDATE public.group_members SET name = p_name, alias = p_alias, role = p_role, notes = p_notes, photo = COALESCE(p_photo, photo) WHERE id = p_id; END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION update_criminal_group(p_group_id UUID, p_name TEXT, p_color TEXT, p_image TEXT) RETURNS VOID AS $$
+BEGIN UPDATE public.criminal_groups SET name = p_name, color = p_color, influence_zone_image = p_image WHERE id = p_group_id; END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
