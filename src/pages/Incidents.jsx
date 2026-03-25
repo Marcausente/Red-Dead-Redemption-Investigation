@@ -14,6 +14,7 @@ function Incidents() {
     const [startX, setStartX] = useState(0);
     const [scrollLeft, setScrollLeft] = useState(0);
 
+    const [expandedCards, setExpandedCards] = useState({});
     const [expandedImage, setExpandedImage] = useState(null);
     const [activeModal, setActiveModal] = useState(null); // 'incident' or 'fieldop'
     const [editingItemId, setEditingItemId] = useState(null);
@@ -139,6 +140,8 @@ function Incidents() {
         }
     };
 
+    const toggleExpand = (id) => setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+
     const handleDeleteIncident = async (id, type) => {
         if (!window.confirm("¿Seguro que quieres arrancar este informe de los tablones del muro?")) return;
         try {
@@ -178,7 +181,11 @@ function Incidents() {
                 {i.group_name && <span style={{ color: i.group_color || '#8b0000', fontWeight: 'bold' }}>🏴 {i.group_name}</span>}
             </div>
 
-            <div className="rdr-card-text" style={{ marginTop: '10px' }}>{i.description}</div>
+            {i.description && (
+                <div onClick={() => toggleExpand(i.id)} style={{ cursor: 'pointer', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.1)', borderLeft: '2px solid #8b5a2b', color: '#1a0f0a', whiteSpace: 'pre-wrap', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: expandedCards[i.id] ? 'none' : '4', WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title="Clic para expandir/contraer">
+                    <strong>Descripción: </strong> {i.description}
+                </div>
+            )}
 
             {i.images && i.images.length > 0 && (
                 <div className="rdr-camp-imgs" style={{ marginTop: '10px' }}>
@@ -205,11 +212,17 @@ function Incidents() {
                 {o.group_name && <span style={{ color: o.group_color || '#8b0000', fontWeight: 'bold' }}>🏴 Destino: {o.group_name}</span>}
             </div>
 
-            <div className="rdr-section-title" style={{ marginTop: '10px', fontSize: '0.7rem' }}>OBJETIVO</div>
-            <div className="rdr-card-text">{o.reason}</div>
-
-            <div className="rdr-section-title" style={{ marginTop: '10px', fontSize: '0.7rem' }}>INTELIGENCIA RECOPILADA</div>
-            <div className="rdr-card-text" style={{ color: '#1a0f0a' }}>{o.info || <span style={{ fontStyle: 'italic', color: '#c0a080' }}>N/A</span>}</div>
+            {o.reason && (
+                <div style={{ marginTop: '10px', color: '#1a0f0a', fontSize: '0.95rem' }}>
+                    <strong>Motivo: </strong> {o.reason}
+                </div>
+            )}
+            
+            {o.info && (
+                <div onClick={() => toggleExpand(o.id)} style={{ cursor: 'pointer', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.1)', borderLeft: '2px solid #556b2f', color: '#1a0f0a', whiteSpace: 'pre-wrap', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: expandedCards[o.id] ? 'none' : '4', WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title="Clic para expandir/contraer">
+                    <strong>Resolución/Info: </strong> {o.info}
+                </div>
+            )}
 
             {o.agents && o.agents.length > 0 && (
                 <>
