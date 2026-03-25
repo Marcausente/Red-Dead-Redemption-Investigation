@@ -167,7 +167,15 @@ function Dashboard() {
                                     )}
                                     <div className="rdr-poster-meta-text">
                                         <span className="rdr-poster-meta-name">{ann.author_rank} {ann.author_name}</span>
-                                        <span className="rdr-poster-meta-date">{new Date(ann.created_at).toLocaleDateString()} - {new Date(ann.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                        <span className="rdr-poster-meta-date">
+                                            {(() => {
+                                                const d = new Date(ann.created_at);
+                                                const day = d.getDate().toString().padStart(2, '0');
+                                                const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                                                const time = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                                return `${day}/${month}/1880 - ${time}`;
+                                            })()}
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="rdr-poster-actions">

@@ -48,17 +48,15 @@
 }
 
 .rdr-poster-card {
-    background-color: #ebd5b3; /* Aged paper */
+    background-color: #e8d8be; /* Light parchment */
     background-image: 
-        radial-gradient(#d4b88f 15%, transparent 16%),
-        radial-gradient(#d4b88f 15%, transparent 16%);
-    background-size: 60px 60px;
-    background-position: 0 0, 30px 30px;
+        linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%),
+        radial-gradient(ellipse at center, transparent 0%, rgba(139, 69, 19, 0.2) 100%);
     padding: 2.5rem 2rem 2rem 2rem;
     border-radius: 2px;
     box-shadow: 
-        3px 5px 15px rgba(0,0,0,0.6),
-        inset 0 0 40px rgba(139, 69, 19, 0.2);
+        4px 6px 15px rgba(0,0,0,0.7),
+        inset 0 0 40px rgba(139, 69, 19, 0.3);
     border: 1px solid #8b5a2b;
     color: #2c1e16;
     position: relative;
