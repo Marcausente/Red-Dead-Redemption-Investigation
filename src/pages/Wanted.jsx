@@ -202,7 +202,7 @@ function Wanted() {
                             <div className="wep-name">{poster.fugitive_name} {poster.fugitive_surname}</div>
                             {poster.fugitive_alias && <div className="wep-alias">"{poster.fugitive_alias}"</div>}
                             <div className="wep-type">{poster.wanted_type}</div>
-                            <div style={{ fontSize: '1.1rem', color: '#5c3a15', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 'bold', fontFamily: 'Cinzel, serif' }}>BUSCANDO EN: {poster.town || 'Desconocido'}</div>
+                            <div style={{ fontSize: '1.1rem', color: '#5c3a15', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 'bold', fontFamily: 'Cinzel, serif', marginBottom: '8px' }}>BUSCANDO EN: {poster.town || 'Desconocido'}</div>
                             {poster.is_dangerous && <div className="wep-dangerous">⚠ INDIVIDUO PELIGROSO ⚠</div>}
                             <div className="wep-reward-section">
                                 <div className="wep-reward-label">Recompensa</div>
