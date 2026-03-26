@@ -159,12 +159,12 @@ function Wanted() {
         if (!el) { setExportingId(null); return; }
         try {
             const canvas = await html2canvas(el, {
-                scale: 2,
+                scale: 1,
                 useCORS: true,
                 backgroundColor: null,
                 logging: false,
-                width: 400,
-                height: 512
+                width: 800,
+                height: 1024
             });
             const link = document.createElement('a');
             link.download = `cartel_${poster.fugitive_name}_${poster.fugitive_surname || ''}.png`;
@@ -188,24 +188,26 @@ function Wanted() {
         <div className="wanted-card">
             {/* Hidden export version */}
             {exportingId === poster.id && (
-                <div ref={el => exportRefs.current[poster.id] = el} className="wanted-export-poster">
+                    <div ref={el => exportRefs.current[poster.id] = el} className="wanted-export-poster">
                     <div className="wep-inner">
-                        <div className="wep-bureau">Bureau of Investigation — {getStateName(poster.town)}</div>
-                        <div className="wep-wanted">WANTED</div>
-                        <div className="wep-photo">
-                            {poster.photo
-                                ? <img src={poster.photo} alt="Fugitive" />
-                                : <div style={{ width: '100%', height: '100%', background: '#c8b88a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cinzel', color: '#7a4f1d', fontSize: '0.7rem' }}>SIN FOTO</div>
-                            }
-                        </div>
-                        <div className="wep-name">{poster.fugitive_name} {poster.fugitive_surname}</div>
-                        {poster.fugitive_alias && <div className="wep-alias">"{poster.fugitive_alias}"</div>}
-                        <div className="wep-type">{poster.wanted_type}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#5c3a15', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold' }}>BUSCANDO EN: {poster.town || 'Desconocido'}</div>
-                        {poster.is_dangerous && <div className="wep-dangerous">⚠ INDIVIDUO PELIGROSO ⚠</div>}
-                        <div className="wep-reward-section">
-                            <div className="wep-reward-label">Recompensa</div>
-                            <div className="wep-reward-amount">{formatReward(poster.reward_amount)}</div>
+                        <div className="wep-main-block">
+                            <div className="wep-bureau">Bureau of Investigation — {getStateName(poster.town)}</div>
+                            <div className="wep-wanted">WANTED</div>
+                            <div className="wep-photo">
+                                {poster.photo
+                                    ? <img src={poster.photo} alt="Fugitive" />
+                                    : <div style={{ width: '100%', height: '100%', background: '#c8b88a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cinzel', color: '#7a4f1d', fontSize: '1rem' }}>SIN FOTO</div>
+                                }
+                            </div>
+                            <div className="wep-name">{poster.fugitive_name} {poster.fugitive_surname}</div>
+                            {poster.fugitive_alias && <div className="wep-alias">"{poster.fugitive_alias}"</div>}
+                            <div className="wep-type">{poster.wanted_type}</div>
+                            <div style={{ fontSize: '1.1rem', color: '#5c3a15', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 'bold', fontFamily: 'Cinzel, serif' }}>BUSCANDO EN: {poster.town || 'Desconocido'}</div>
+                            {poster.is_dangerous && <div className="wep-dangerous">⚠ INDIVIDUO PELIGROSO ⚠</div>}
+                            <div className="wep-reward-section">
+                                <div className="wep-reward-label">Recompensa</div>
+                                <div className="wep-reward-amount">{formatReward(poster.reward_amount)}</div>
+                            </div>
                         </div>
                         <div className="wep-footer">
                             Emitido el {formatDate(poster.published_at)} — Contacte a su Oficial más cercano
