@@ -27,6 +27,7 @@ export default function CrimeMap() {
 
     // State
     const [zones, setZones] = useState([]);
+    const [mapReady, setMapReady] = useState(false);
     const [authorized, setAuthorized] = useState(false);
     const [mode, setMode] = useState('view'); // 'view', 'draw'
     const [drawingPoints, setDrawingPoints] = useState([]);
@@ -136,6 +137,7 @@ export default function CrimeMap() {
                 });
 
                 mapInstanceRef.current = map;
+                setMapReady(true);
             };
         }
 
@@ -160,7 +162,7 @@ export default function CrimeMap() {
     }, [zones]);
 
     // RENDER ZONES
-    useEffect(() => {
+    useEffect(() => {  // RENDER ZONES
         if (mapInstanceRef.current && layerGroupRef.current) {
             layerGroupRef.current.clearLayers();
 
@@ -197,7 +199,7 @@ export default function CrimeMap() {
                 poly.addTo(layerGroupRef.current);
             });
         }
-    }, [zones, authorized]);
+    }, [zones, authorized, mapReady]);
 
     // RENDER DRAWING
     useEffect(() => {
