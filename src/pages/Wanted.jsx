@@ -16,15 +16,16 @@ function Wanted() {
     // Towns list
     const towns = ['Saint Denis', 'Rhodes', 'Valentine', 'Annesburg', 'Blackwater', 'Strawberry', 'Armadillo', 'Tumbleweed'];
 
-    // State mapping
+    // County mapping
     const getStateName = (t) => {
-        if (!t) return 'Estado de New Hanover';
+        if (!t) return 'Condado de New Hanover';
         const tn = t.toLowerCase();
-        if (tn === 'tumbleweed' || tn === 'armadillo') return 'Estado de New Austin';
-        if (tn === 'blackwater' || tn === 'strawberry') return 'Estado de West Elizabeth';
-        if (tn === 'valentine' || tn === 'annesburg') return 'Estado de New Hanover';
-        if (tn === 'rhodes' || tn === 'saint denis') return 'Estado de Lemoyne';
-        return 'Estado de New Hanover';
+        if (tn === 'todos los pueblos') return 'State of Flat Iron';
+        if (tn === 'tumbleweed' || tn === 'armadillo') return 'Condado de New Austin';
+        if (tn === 'blackwater' || tn === 'strawberry') return 'Condado de West Elizabeth';
+        if (tn === 'valentine' || tn === 'annesburg') return 'Condado de New Hanover';
+        if (tn === 'rhodes' || tn === 'saint denis') return 'Condado de Lemoyne';
+        return 'Condado de New Hanover';
     };
 
     // Date helper
@@ -192,7 +193,7 @@ function Wanted() {
                     <div ref={el => exportRefs.current[poster.id] = el} className="wanted-export-poster">
                     <div className="wep-inner">
                         <div className="wep-main-block">
-                            <div className="wep-bureau">Bureau of Investigation — State of Flat Iron</div>
+                            <div className="wep-bureau">Bureau of Investigation — {getStateName(poster.town)}</div>
                             <div className="wep-wanted">WANTED</div>
                             <div className="wep-photo">
                                 {poster.photo
@@ -219,7 +220,7 @@ function Wanted() {
 
             <div className="wanted-card-inner">
                 <div style={{ position: 'absolute', top: '10px', left: '0', width: '100%', textAlign: 'center', fontFamily: 'Cinzel', fontSize: '0.5rem', color: 'rgba(92, 58, 21, 0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Bureau of Investigation — State of Flat Iron
+                    Bureau of Investigation — {getStateName(poster.town)}
                 </div>
                 <div className="wanted-label-wanted">WANTED</div>
                 <div className="wanted-photo-container">
@@ -367,8 +368,9 @@ function Wanted() {
                             {/* Town & Date */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.7rem', marginBottom: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontFamily: 'Cinzel', fontSize: '0.65rem', color: '#8b5a2b', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Visto en (Pueblo)</label>
+                                    <label style={{ display: 'block', fontFamily: 'Cinzel', fontSize: '0.65rem', color: '#8b5a2b', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Se busca en (Pueblo)</label>
                                     <select value={town} onChange={e => setTown(e.target.value)} style={{ width: '100%', background: '#1a0f0a', border: '1px solid #8b5a2b', color: '#e5d8c5', fontFamily: 'Cinzel', fontSize: '0.8rem', padding: '0.5rem', appearance: 'auto' }}>
+                                        <option value="Todos los Pueblos">Todos los Pueblos</option>
                                         {towns.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </div>
