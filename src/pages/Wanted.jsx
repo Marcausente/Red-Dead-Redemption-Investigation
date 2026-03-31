@@ -5,6 +5,7 @@ import './WantedRDR.css';
 
 function Wanted() {
     const [view, setView] = useState('active'); // 'active' | 'archived'
+    const [selectedTown, setSelectedTown] = useState('all');
     const [posters, setPosters] = useState({ active: [], archived: [] });
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -191,7 +192,7 @@ function Wanted() {
                     <div ref={el => exportRefs.current[poster.id] = el} className="wanted-export-poster">
                     <div className="wep-inner">
                         <div className="wep-main-block">
-                            <div className="wep-bureau">Bureau of Investigation — {getStateName(poster.town)}</div>
+                            <div className="wep-bureau">Bureau of Investigation — State of Flat Iron</div>
                             <div className="wep-wanted">WANTED</div>
                             <div className="wep-photo">
                                 {poster.photo
@@ -218,7 +219,7 @@ function Wanted() {
 
             <div className="wanted-card-inner">
                 <div style={{ position: 'absolute', top: '10px', left: '0', width: '100%', textAlign: 'center', fontFamily: 'Cinzel', fontSize: '0.5rem', color: 'rgba(92, 58, 21, 0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Bureau of Investigation — {getStateName(poster.town)}
+                    Bureau of Investigation — State of Flat Iron
                 </div>
                 <div className="wanted-label-wanted">WANTED</div>
                 <div className="wanted-photo-container">
@@ -256,7 +257,10 @@ function Wanted() {
         </div>
     );
 
-    const currentList = view === 'active' ? posters.active : posters.archived;
+    const allForView = view === 'active' ? posters.active : posters.archived;
+    const currentList = selectedTown === 'all'
+        ? allForView
+        : allForView.filter(p => p.town === selectedTown);
 
     return (
         <div className="wanted-container">
@@ -265,7 +269,7 @@ function Wanted() {
                 <p className="wanted-subtitle">Archivo de Fugitivos — Bureau of Investigation</p>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div className="wanted-tabs">
                     <button className={`wanted-tab${view === 'active' ? ' active' : ''}`} onClick={() => setView('active')}>
                         📋 Carteles Activos ({posters.active?.length || 0})
@@ -280,6 +284,26 @@ function Wanted() {
                 >
                     + Emitir Nuevo Cartel
                 </button>
+            </div>
+
+            {/* Town filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'Cinzel', fontSize: '0.65rem', color: '#8b5a2b', textTransform: 'uppercase', letterSpacing: '2px' }}>Se busca en:</span>
+                <button
+                    onClick={() => setSelectedTown('all')}
+                    style={{ fontFamily: 'Cinzel', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', padding: '0.35rem 0.9rem', background: selectedTown === 'all' ? 'rgba(139,90,43,0.5)' : 'transparent', border: selectedTown === 'all' ? '1px solid #d4af37' : '1px solid #8b5a2b', color: selectedTown === 'all' ? '#d4af37' : '#c0a080', cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                    Todos los Pueblos
+                </button>
+                {towns.map(t => (
+                    <button
+                        key={t}
+                        onClick={() => setSelectedTown(t)}
+                        style={{ fontFamily: 'Cinzel', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', padding: '0.35rem 0.9rem', background: selectedTown === t ? 'rgba(139,90,43,0.5)' : 'transparent', border: selectedTown === t ? '1px solid #d4af37' : '1px solid #8b5a2b', color: selectedTown === t ? '#d4af37' : '#c0a080', cursor: 'pointer', transition: 'all 0.2s' }}
+                    >
+                        {t}
+                    </button>
+                ))}
             </div>
 
             {loading ? (
