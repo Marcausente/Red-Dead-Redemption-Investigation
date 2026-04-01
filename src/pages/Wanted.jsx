@@ -186,7 +186,25 @@ function Wanted() {
         return '$' + Number(n).toLocaleString('en-US');
     };
 
-    const PosterCard = ({ poster }) => (
+    const PosterCard = ({ poster }) => {
+        const [sepiaPhoto, setSepiaPhoto] = useState(null);
+
+        useEffect(() => {
+            if (!poster.photo) return;
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.filter = 'sepia(0.85) contrast(1.15) brightness(0.85)';
+                ctx.drawImage(img, 0, 0);
+                setSepiaPhoto(canvas.toDataURL('image/webp', 0.9));
+            };
+            img.src = poster.photo;
+        }, [poster.photo]);
+
+        return (
         <div className="wanted-card">
             {/* Hidden export version */}
             {exportingId === poster.id && (
@@ -197,7 +215,7 @@ function Wanted() {
                             <div className="wep-wanted">WANTED</div>
                             <div className="wep-photo">
                                 {poster.photo
-                                    ? <img src={poster.photo} alt="Fugitive" />
+                                    ? <img src={sepiaPhoto || poster.photo} alt="Fugitive" />
                                     : <div style={{ width: '100%', height: '100%', background: '#c8b88a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cinzel', color: '#7a4f1d', fontSize: '1rem' }}>SIN FOTO</div>
                                 }
                             </div>
@@ -225,7 +243,7 @@ function Wanted() {
                 <div className="wanted-label-wanted">WANTED</div>
                 <div className="wanted-photo-container">
                     {poster.photo
-                        ? <img src={poster.photo} alt="Fugitivo" />
+                        ? <img src={sepiaPhoto || poster.photo} alt="Fugitivo" />
                         : <div className="wanted-no-photo">SIN FOTOGRAFÍA<br />DISPONIBLE</div>
                     }
                 </div>
@@ -256,7 +274,8 @@ function Wanted() {
                 <button className="wanted-action-btn danger" onClick={() => handleDelete(poster.id)}>🔥 Quemar</button>
             </div>
         </div>
-    );
+        );
+    };
 
     const allForView = view === 'active' ? posters.active : posters.archived;
     const currentList = selectedTown === 'all'
