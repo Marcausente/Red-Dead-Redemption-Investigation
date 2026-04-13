@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cinzel:wght@500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cinzel:wght@500;700;900&family=Special+Elite&display=swap');
 
 .wanted-container {
     padding: 2rem;
@@ -77,19 +77,14 @@
 
 /* Poster Card */
 .wanted-card {
-    background-color: #e8d8a8;
-    background-image:
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.12'/%3E%3C/svg%3E"),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, transparent 60%),
-        radial-gradient(ellipse at center, transparent 0%, rgba(100, 60, 10, 0.15) 100%);
-    border: 3px solid #7a4f1d;
-    border-radius: 2px;
+    border: 1px solid #7a4f1d;
+    border-radius: 4px;
     padding: 0;
-    box-shadow:
-        5px 8px 20px rgba(0, 0, 0, 0.75),
-        inset 0 0 50px rgba(120, 80, 20, 0.2);
+    box-shadow: 5px 8px 20px rgba(0, 0, 0, 0.75);
     position: relative;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+    background: #1a0f0a; /* Dark background for the card actions area */
 }
 
 .wanted-card:hover {
@@ -127,12 +122,19 @@
 }
 
 .wanted-card-inner {
-    padding: 2rem 1.5rem 1.5rem;
+    background-image: url('../assets/fondocartel.webp');
+    background-size: cover;
+    background-position: center;
+    width: 100%;
+    aspect-ratio: 800 / 1024;
+    padding: 1.5rem 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.4rem;
+    justify-content: flex-start;
+    font-family: 'Special Elite', cursive;
+    color: #1a0f0a;
 }
 
 .wanted-label-wanted {
@@ -149,98 +151,87 @@
     text-shadow: 1px 1px 2px rgba(150, 20, 20, 0.3);
 }
 
+.wanted-type-badge {
+    font-family: 'Special Elite', cursive;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #1a0f0a;
+    text-transform: uppercase;
+    margin-top: 100px; /* Space for the "WANTED" in the background */
+    margin-bottom: 5px;
+}
+
 .wanted-photo-container {
-    width: 140px;
-    height: 155px;
-    border: 3px solid #7a4f1d;
+    width: 60%;
+    aspect-ratio: 1;
+    border: none;
     overflow: hidden;
-    background: #c8b88a;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3), 2px 2px 8px rgba(0, 0, 0, 0.5);
-    margin: 0.5rem 0;
+    margin: 10px 0;
 }
 
 .wanted-photo-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
-
-.wanted-no-photo {
-    font-family: 'Cinzel', serif;
-    font-size: 0.7rem;
-    color: #7a4f1d;
-    text-align: center;
-    opacity: 0.6;
+    filter: sepia(0.8) contrast(1.2) brightness(0.9);
+    border: 2px solid #1a0f0a;
 }
 
 .wanted-fugitive-name {
-    font-family: 'Cinzel', serif;
-    font-size: 1.15rem;
-    font-weight: 900;
-    color: #2c1a08;
+    font-family: 'Special Elite', cursive;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #1a0f0a;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    line-height: 1.3;
+    margin-top: 5px;
 }
 
 .wanted-fugitive-alias {
-    font-family: 'Playfair Display', serif;
-    font-size: 0.9rem;
-    color: #5c3a15;
+    font-family: 'Special Elite', cursive;
+    font-size: 1rem;
+    color: #1a0f0a;
     font-style: italic;
+    margin-bottom: 5px;
 }
 
-.wanted-type-badge {
-    font-family: 'Cinzel', serif;
-    font-size: 0.75rem;
-    font-weight: 700;
+.wanted-town-display {
+    font-family: 'Special Elite', cursive;
+    font-size: 0.9rem;
+    color: #1a0f0a;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    padding: 0.2rem 0.8rem;
-    border: 1.5px solid #8b0000;
+}
+
+.wanted-dangerous-display {
+    font-family: 'Special Elite', cursive;
+    font-size: 0.85rem;
     color: #8b0000;
-    margin: 0.2rem 0;
-}
-
-.wanted-dangerous-badge {
-    font-size: 0.7rem;
-    font-family: 'Cinzel', serif;
-    color: #6b0000;
+    font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 700;
+    margin-top: 2px;
 }
 
 .wanted-reward-section {
-    border-top: 2px dashed rgba(122, 79, 29, 0.5);
-    width: 100%;
-    padding-top: 0.6rem;
-    margin-top: 0.2rem;
-}
-
-.wanted-reward-label {
-    font-family: 'Cinzel', serif;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    color: #5c3a15;
+    margin-top: auto;
+    padding-top: 10px;
 }
 
 .wanted-reward-amount {
-    font-family: 'Cinzel', serif;
-    font-size: 1.5rem;
-    font-weight: 900;
-    color: #2c1a08;
+    font-family: 'Special Elite', cursive;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #1a0f0a;
 }
 
 .wanted-date {
-    font-size: 0.7rem;
-    color: #7a4f1d;
-    font-style: italic;
-    margin-top: 0.3rem;
+    font-family: 'Special Elite', cursive;
+    font-size: 0.75rem;
+    color: #1a0f0a;
+    margin-top: 5px;
+    margin-bottom: 10px;
 }
 
 /* Card action buttons */
@@ -250,7 +241,9 @@
     gap: 5px;
     padding: 0.7rem 1rem;
     border-top: 1px dashed rgba(122, 79, 29, 0.4);
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 20;
 }
 
 .wanted-action-btn {
@@ -356,140 +349,95 @@
     top: 0;
     width: 800px;
     height: 1024px;
-    background-color: #e8d8a8;
-    background-image: 
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.12'/%3E%3C/svg%3E"),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, transparent 60%),
-        radial-gradient(ellipse at center, transparent 0%, rgba(100, 60, 10, 0.15) 100%);
-    border: 10px solid #7a4f1d;
+    background-image: url('../assets/fondocartel.webp');
+    background-size: cover;
+    background-position: center;
+    border: none;
     padding: 0;
     margin: 0;
-    font-family: 'Cinzel', serif;
+    font-family: 'Special Elite', cursive;
     overflow: hidden;
     box-sizing: border-box;
-    box-shadow: inset 0 0 60px rgba(120, 80, 20, 0.25);
 }
 
 /* Layout: flex column, espacio entre contenido central y footer */
 .wep-inner {
-    padding: 32px 48px 28px;
+    padding: 40px 60px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 10px;
     height: 100%;
     box-sizing: border-box;
-    justify-content: space-between;
+    color: #1a0f0a;
 }
 
-/* Bloque superior: todo excepto footer */
-.wep-main-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 10px;
-    width: 100%;
-}
-
-.wep-bureau {
-    font-size: 0.95rem;
+.wep-wanted-type {
+    font-size: 2.5rem;
+    font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 5px;
-    color: #5c3a15;
-    line-height: 1.5;
-}
-
-.wep-wanted {
-    font-size: 4.2rem;
-    font-weight: 900;
-    color: #8b0000;
-    text-transform: uppercase;
-    letter-spacing: 14px;
-    border-top: 5px double #7a4f1d;
-    border-bottom: 5px double #7a4f1d;
-    padding: 6px 30px;
-    width: 100%;
-    text-shadow: 2px 2px 6px rgba(180, 30, 30, 0.4);
-    box-sizing: border-box;
+    margin-top: 140px; /* Space for background "WANTED" */
+    margin-bottom: 20px;
 }
 
 .wep-photo {
-    margin-top: 20px;
-    width: 310px;
-    height: 300px;
-    border: 5px solid #7a4f1d;
+    width: 420px;
+    height: 420px;
+    border: 4px solid #1a0f0a;
     overflow: hidden;
-    background: #c8b88a;
-    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.3), 4px 4px 16px rgba(0, 0, 0, 0.5);
-    flex-shrink: 0;
+    background: transparent;
+    margin-bottom: 20px;
 }
 
 .wep-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center top;
+    filter: sepia(0.8) contrast(1.2) brightness(0.9);
 }
 
 .wep-name {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #2c1a08;
+    font-size: 3.5rem;
+    font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 3px;
-    line-height: 1.2;
-    margin-top: 2px;
+    margin-bottom: 5px;
 }
 
 .wep-alias {
-    font-size: 1.2rem;
-    color: #5c3a15;
+    font-size: 2.2rem;
     font-style: italic;
-    font-family: 'Playfair Display', serif;
-    margin-top: -4px;
-    margin-bottom: 8px;
-}
-
-.wep-type {
-    font-size: 1.15rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 4px;
-    padding: 5px 20px;
-    border: 2.5px solid #8b0000;
-    color: #8b0000;
-    margin-bottom: 8px;
-}
-
-.wep-dangerous {
-    font-size: 0.9rem;
-    color: #8b0000;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-weight: 700;
     margin-bottom: 10px;
 }
 
-.wep-reward-section {
-    border-top: 2.5px dashed rgba(122, 79, 29, 0.6);
-    width: 100%;
-    padding-top: 38px;
+.wep-town {
+    font-size: 1.8rem;
+    text-transform: uppercase;
+    margin-bottom: 5px;
 }
 
-.wep-reward-label {
-    font-size: 0.9rem;
+.wep-dangerous {
+    font-size: 1.6rem;
+    color: #8b0000;
+    font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 6px;
-    color: #5c3a15;
+    margin-bottom: 15px;
+}
+
+.wep-reward-section {
+    margin-top: auto;
+    width: 100%;
 }
 
 .wep-reward-amount {
-    font-size: 3.6rem;
-    font-weight: 900;
-    color: #2c1a08;
-    line-height: 1.1;
+    font-size: 5rem;
+    font-weight: bold;
+}
+
+.wep-footer-date {
+    font-size: 1.4rem;
+    margin-top: 15px;
+    margin-bottom: 20px;
+    font-style: italic;
 }
 
 /* Footer: siempre al fondo gracias a justify-content: space-between */
